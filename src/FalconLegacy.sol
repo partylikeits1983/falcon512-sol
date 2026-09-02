@@ -106,7 +106,7 @@ contract Falcon {
     // Compute NTT on a ring element.
     // JG: Number-theoretic transform
     ////////////////////////////////////////
-    function mq_NTT(uint16[] memory pWordArray, bytes memory gmbTable) private pure {
+    function mq_NTT(uint32[] memory pWordArray, bytes memory gmbTable) private pure {
         uint32 t = 512;
         for (uint32 m = 1; m < 512; m <<= 1) {
             uint32 ht = t >> 1;
@@ -117,8 +117,8 @@ contract Falcon {
                 for (uint32 j = j1; j < j2; j++) {
                     uint32 u = pWordArray[j];
                     uint32 v = mq_montymul(pWordArray[j + ht], s);
-                    pWordArray[j] = uint16(mq_add(u, v));
-                    pWordArray[j + ht] = uint16(mq_sub(u, v));
+                    pWordArray[j] = mq_add(u, v);
+                    pWordArray[j + ht] = mq_sub(u, v);
                 }
                 j1 += t;
             }
@@ -130,7 +130,7 @@ contract Falcon {
     ////////////////////////////////////////
     // Compute the inverse NTT on a ring element, binary case.
     ////////////////////////////////////////
-    function mq_iNTT(uint16[] memory pWordArray, bytes memory igmbTable) private pure {
+    function mq_iNTT(uint32[] memory pWordArray, bytes memory igmbTable) private pure {
         uint32 t = 1;
         uint32 m = 512;
         while (m > 1) {
@@ -142,8 +142,8 @@ contract Falcon {
                 for (uint32 j = j1; j < j1 + t; j++) {
                     uint32 u = pWordArray[j];
                     uint32 v = pWordArray[j + t];
-                    pWordArray[j] = uint16(mq_add(u, v));
-                    pWordArray[j + t] = uint16(mq_montymul(mq_sub(u, v), s));
+                    pWordArray[j] = mq_add(u, v);
+                    pWordArray[j + t] = mq_montymul(mq_sub(u, v), s);
                 }
                 j1 += dt;
             }
@@ -154,18 +154,18 @@ contract Falcon {
 
         uint32 ni = 128;
         for (m = 0; m < 512; m++) {
-            pWordArray[m] = uint16(mq_montymul(pWordArray[m], ni));
+            pWordArray[m] = mq_montymul(pWordArray[m], ni);
         }
     }
 
     ////////////////////////////////////////
     // Convert a polynomial (mod q) to Montgomery representation.
     ////////////////////////////////////////
-    function mq_poly_tomonty(uint16[] memory pWordArrayF) private pure {
+    function mq_poly_tomonty(uint32[] memory pWordArrayF) private pure {
         uint32 u;
 
         for (u = 0; u < 512; u++) {
-            pWordArrayF[u] = uint16(mq_montymul(pWordArrayF[u], R2));
+            pWordArrayF[u] = mq_montymul(pWordArrayF[u], R2);
         }
     }
 
@@ -173,22 +173,22 @@ contract Falcon {
     // Multiply two polynomials together (NTT representation, and using
     // a Montgomery multiplication). Result f*g is written over f.
     ////////////////////////////////////////
-    function mq_poly_montymul_ntt(uint16[] memory pWordArrayF, uint16[] memory pWordArrayG) private pure {
+    function mq_poly_montymul_ntt(uint32[] memory pWordArrayF, uint32[] memory pWordArrayG) private pure {
         uint32 u;
 
         for (u = 0; u < 512; u++) {
-            pWordArrayF[u] = uint16(mq_montymul(pWordArrayF[u], pWordArrayG[u]));
+            pWordArrayF[u] = mq_montymul(pWordArrayF[u], pWordArrayG[u]);
         }
     }
 
     ////////////////////////////////////////
     // Subtract polynomial g from polynomial f.
     ////////////////////////////////////////
-    function mq_poly_sub(uint16[] memory pWordArrayF, uint16[] memory pWordArrayG) private pure {
+    function mq_poly_sub(uint32[] memory pWordArrayF, uint32[] memory pWordArrayG) private pure {
         uint32 u;
 
         for (u = 0; u < 512; u++) {
-            pWordArrayF[u] = uint16(mq_sub(pWordArrayF[u], pWordArrayG[u]));
+            pWordArrayF[u] = mq_sub(pWordArrayF[u], pWordArrayG[u]);
         }
     }
 
@@ -197,8 +197,8 @@ contract Falcon {
     ////////////////////////////////////////
     //
     ////////////////////////////////////////
-    function PQCLEAN_FALCON512_CLEAN_to_ntt_monty(uint16[] memory pWordArrayH) private view {
-        mq_NTT(pWordArrayH, tables.gmb());
+    function PQCLEAN_FALCON512_CLEAN_to_ntt_monty(uint32[] memory pWordArrayH, bytes memory gmbTable) private pure {
+        mq_NTT(pWordArrayH, gmbTable);
         mq_poly_tomonty(pWordArrayH);
     }
 
@@ -211,7 +211,7 @@ contract Falcon {
         return uint32(value);
     }
 
-    function hash_to_point_rust(uint16[] memory output, bytes calldata signature, bytes calldata message)
+    function hash_to_point_rust(uint32[] memory output, bytes calldata signature, bytes calldata message)
         private
         pure
     {
@@ -231,7 +231,7 @@ contract Falcon {
 
             uint32 t = (uint32(b0) << 8) | uint32(b1);
             if (t < 61445) {
-                output[u++] = uint16(t % Q);
+                output[u++] = t % Q;
             }
         }
     }
@@ -336,14 +336,14 @@ contract Falcon {
         return uint8((KECCAK_PI_INDEXES >> (i * 8)) & 0xFF);
     }
 
-    function PQCLEAN_FALCON512_CLEAN_is_short(uint16[] memory s1, int16[] memory s2) private pure returns (int16) {
+    function PQCLEAN_FALCON512_CLEAN_is_short(uint32[] memory s1, int32[] memory s2) private pure returns (int16) {
         uint32 s = 0;
         uint32 ng = 0;
         for (uint32 u = 0; u < 512; u++) {
-            s += squareInt16(int16(s1[u]));
+            s += squareInt32Bits(s1[u]);
             ng |= s;
 
-            s += squareInt16(s2[u]);
+            s += squareInt32(s2[u]);
             ng |= s;
         }
 
@@ -355,9 +355,13 @@ contract Falcon {
         return 0;
     }
 
-    function squareInt16(int16 x) private pure returns (uint32) {
+    function squareInt32Bits(uint32 x) private pure returns (uint32) {
         int32 y = int32(x);
         return uint32(y * y);
+    }
+
+    function squareInt32(int32 x) private pure returns (uint32) {
+        return uint32(x * x);
     }
 
     // ==== common.c END =====================================================================================================================
@@ -368,7 +372,7 @@ contract Falcon {
     //
     ////////////////////////////////////////
     function PQCLEAN_FALCON512_CLEAN_modq_decode(
-        uint16[] memory pX,
+        uint32[] memory pX,
         bytes calldata pInput,
         uint16 In_offset,
         uint16 cbInputMax
@@ -392,14 +396,14 @@ contract Falcon {
             acc = (acc << 8) | uint32(uint8(pInput[In_offset + buf_ndx++]));
             acc_len += 8;
             if (acc_len >= 14) {
-                uint16 w;
+                uint32 w;
 
                 acc_len -= 14;
-                w = uint16((acc >> acc_len) & 0x3FFF);
+                w = (acc >> acc_len) & 0x3FFF;
                 if (w >= 12289) {
-                    w -= uint16(Q);
+                    w -= Q;
                 }
-                pX[u++] = uint16(w);
+                pX[u++] = w;
             }
         }
 
@@ -414,7 +418,7 @@ contract Falcon {
     //
     ////////////////////////////////////////
     function PQCLEAN_FALCON512_CLEAN_comp_decode(
-        int16[] memory pOutput,
+        int32[] memory pOutput,
         bytes calldata pInput,
         uint16 In_offset,
         uint16 cbInputMax
@@ -451,7 +455,7 @@ contract Falcon {
             if (s != 0 && m == 0) {
                 return 0;
             }
-            pOutput[u] = int16((s != 0) ? -int256(m) : int256(m));
+            pOutput[u] = int32((s != 0) ? -int256(m) : int256(m));
         }
 
         while (bitIndex < bitLen) {
@@ -484,11 +488,13 @@ contract Falcon {
     //
     ////////////////////////////////////////
     function PQCLEAN_FALCON512_CLEAN_verify_raw(
-        uint16[] memory c0,
-        int16[] memory s2,
-        uint16[] memory pH,
-        uint16[] memory pWorkingStorageWords
-    ) private view returns (int16 result) {
+        uint32[] memory c0,
+        int32[] memory s2,
+        uint32[] memory pH,
+        uint32[] memory pWorkingStorageWords,
+        bytes memory gmbTable,
+        bytes memory igmbTable
+    ) private pure returns (int16 result) {
         uint32 u;
 
         // Reduce s2 elements modulo q ([0..q-1] range).
@@ -498,13 +504,13 @@ contract Falcon {
             w = uint32(s2[u]);
 
             w += Q & -(w >> 31);
-            pWorkingStorageWords[u] = uint16(w);
+            pWorkingStorageWords[u] = w;
         }
 
         // Compute -s1 = s2*h - c0 mod phi mod q (in pWorkingStorageWords[]).
-        mq_NTT(pWorkingStorageWords, tables.gmb());
+        mq_NTT(pWorkingStorageWords, gmbTable);
         mq_poly_montymul_ntt(pWorkingStorageWords, pH);
-        mq_iNTT(pWorkingStorageWords, tables.igmb());
+        mq_iNTT(pWorkingStorageWords, igmbTable);
         mq_poly_sub(pWorkingStorageWords, c0);
 
         // Normalize -s1 elements into the [-q/2..q/2] range.
@@ -513,7 +519,7 @@ contract Falcon {
 
             w = int32(pWorkingStorageWords[u]);
             w -= int32(Q & -(((Q >> 1) - uint32(w)) >> 31));
-            pWorkingStorageWords[u] = uint16(int16(w));
+            pWorkingStorageWords[u] = uint32(w);
         }
 
         // Signature is valid if and only if the aggregate (-s1,s2) vector is short enough.
@@ -543,62 +549,42 @@ contract Falcon {
         // Start of Verification Proper
         ////////////////////////////////////////////////
 
-        uint16[] memory pWordArrayH;
-        int16[] memory pSignedWordArraySig;
+        uint32[] memory pWordArrayH = new uint32[](512);
+        int32[] memory pSignedWordArraySig = new int32[](512);
+        bytes memory gmbTable = tables.gmb();
+        bytes memory igmbTable = tables.igmb();
 
-        pWordArrayH = new uint16[](512);
-        pSignedWordArraySig = new int16[](512);
+        ////////////////////////////////////////
+        // static int do_verify(const uint8_t*  pNonce,
+        //                      const uint8_t*  pSignatureProper,
+        //                      size_t          cbSignatureProper,
+        //                      const uint8_t*  pMessage,
+        //                      size_t          cbMessage,
+        //                      const uint8_t*  pPublicKey)
+        ////////////////////////////////////////
 
-        int16 rc = FALCON_ERR_UNDEFINED;
-
-        {
-            uint16 cbSignatureProper = 625;
-
-            ////////////////////////////////////////
-            // static int do_verify(const uint8_t*  pNonce,
-            //                      const uint8_t*  pSignatureProper,
-            //                      size_t          cbSignatureProper,
-            //                      const uint8_t*  pMessage,
-            //                      size_t          cbMessage,
-            //                      const uint8_t*  pPublicKey)
-            ////////////////////////////////////////
-
-            uint16 sz1;
-            uint16 sz2;
-
-            ///////////////////////////////////////////////
-            // Decode public key.
-            sz1 = PQCLEAN_FALCON512_CLEAN_modq_decode(
+        ///////////////////////////////////////////////
+        // Decode public key.
+        if (
+            PQCLEAN_FALCON512_CLEAN_modq_decode(
                 pWordArrayH, pPublicKey, 1, PQCLEAN_FALCON512_CLEAN_CRYPTO_PUBLICKEYBYTES - 1
-            );
-            if (sz1 != PQCLEAN_FALCON512_CLEAN_CRYPTO_PUBLICKEYBYTES - 1) {
-                if (rc == FALCON_ERR_UNDEFINED) {
-                    rc = FALCON_ERR_BADSIG + (-130);
-                }
-                return rc;
-            }
-            // JG: pWordArrayH now contains decoded public key
-            PQCLEAN_FALCON512_CLEAN_to_ntt_monty(pWordArrayH);
-            // JG: pWordArrayH now contains montified decoded public key
+            ) != PQCLEAN_FALCON512_CLEAN_CRYPTO_PUBLICKEYBYTES - 1
+        ) {
+            return FALCON_ERR_BADSIG + (-130);
+        }
+        // JG: pWordArrayH now contains decoded public key
+        PQCLEAN_FALCON512_CLEAN_to_ntt_monty(pWordArrayH, gmbTable);
+        // JG: pWordArrayH now contains montified decoded public key
 
-            ///////////////////////////////////////////////
-            // Decode signature.
-            sz2 =
-                PQCLEAN_FALCON512_CLEAN_comp_decode(pSignedWordArraySig, pSignatureBuf, 1 + NONCELEN, cbSignatureProper);
-            if (sz2 != cbSignatureProper) {
-                if (rc == FALCON_ERR_UNDEFINED) {
-                    rc = FALCON_ERR_BADSIG + (-140);
-                }
-                return rc;
-            }
+        ///////////////////////////////////////////////
+        // Decode signature.
+        if (PQCLEAN_FALCON512_CLEAN_comp_decode(pSignedWordArraySig, pSignatureBuf, 1 + NONCELEN, 625) != 625) {
+            return FALCON_ERR_BADSIG + (-140);
         }
         // JG: pSignedWordArraySig now contains the decoded signature
 
-        uint16[] memory pWordArrayWorkingStorage;
-        uint16[] memory pWordArrayHm;
-
-        pWordArrayWorkingStorage = new uint16[](512);
-        pWordArrayHm = new uint16[](512);
+        uint32[] memory pWordArrayWorkingStorage = new uint32[](512);
+        uint32[] memory pWordArrayHm = new uint32[](512);
 
         ///////////////////////////////////////////////
         // Hash Nonce + Message into a vector.
@@ -608,20 +594,14 @@ contract Falcon {
 
         ///////////////////////////////////////////////
         // Verify signature.
-        int16 success =
-            PQCLEAN_FALCON512_CLEAN_verify_raw(pWordArrayHm, pSignedWordArraySig, pWordArrayH, pWordArrayWorkingStorage);
+        int16 success = PQCLEAN_FALCON512_CLEAN_verify_raw(
+            pWordArrayHm, pSignedWordArraySig, pWordArrayH, pWordArrayWorkingStorage, gmbTable, igmbTable
+        );
         if (success == 0) {
-            if (rc == FALCON_ERR_UNDEFINED) {
-                rc = FALCON_ERR_BADSIG + (-150);
-            }
-            return rc;
+            return FALCON_ERR_BADSIG + (-150);
         }
 
-        if (rc == FALCON_ERR_UNDEFINED) {
-            rc = FALCON_ERR_SUCCESS;
-        }
-
-        return rc;
+        return FALCON_ERR_SUCCESS;
     }
 
     // ==== pqclean.c END =====================================================================================================================
