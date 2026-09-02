@@ -1,0 +1,11 @@
+[package]
+name = "falcon512-oracle"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+falcon-rust = { git = "https://github.com/partylikeits1983/falcon512-stm32", rev = "ce324854bd66c7dc1ce4418f9573efdb21c6b048", package = "falcon-rust" }
+hex = "0.4"
+rand_chacha = "0.3"
+rand_core = "0.6"

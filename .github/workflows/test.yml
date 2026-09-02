@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Rust oracle and Foundry differential tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Rust format
+        run: cargo fmt --check
+
+      - name: Rust oracle tests
+        run: cargo test -p falcon512-oracle
+
+      - name: Forge format
+        run: forge fmt --check
+
+      - name: Forge build
+        run: forge build --sizes
+
+      - name: Deterministic differential tests
+        run: forge test -vv --match-contract Falcon512DifferentialTest --match-test 'test_'
+
+      - name: Differential fuzzing
+        run: forge test -vv --match-contract Falcon512DifferentialTest --match-test testFuzz_DifferentialMutations
