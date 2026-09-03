@@ -1,8 +1,16 @@
 # Falcon512 Prepared Solidity Verifier
 
-Standalone Foundry/Rust workspace for differential testing an optimized Solidity Falcon512 prepared verifier against the no-std Rust implementation from `partylikeits1983/falcon512-stm32`.
+Standalone Foundry/Rust workspace for a gas-optimized Falcon512 prepared verifier.
 
-The Rust oracle is pinned to commit `ce324854bd66c7dc1ce4418f9573efdb21c6b048` and is used from Foundry through FFI. There is no JavaScript test harness in this repo.
+The core Solidity verification logic is derived from ZKNOX/ETHFALCON's Falcon512 work, especially the helper-backed SHAKE256 and packed-SWAR NTT implementation. This repo keeps that NIST-compatible core, removes the older raw verifier surface, and adds further gas optimizations around prepared inputs, calldata handling, packed intermediate values, and fused norm checking.
+
+Correctness is tested against the no-std Rust Falcon512 implementation from `partylikeits1983/falcon512-stm32`. The Rust oracle is pinned to commit `ce324854bd66c7dc1ce4418f9573efdb21c6b048` and is used from Foundry through FFI. There is no JavaScript test harness in this repo.
+
+## Provenance
+
+- Core Falcon512 Solidity logic: ZKNOX/ETHFALCON, `exp/pq-verifier-gas`, commit `7ccde16bf951f4d1cc0d0008f2db74ccf2a1d37b`.
+- Keccak-f[1600] helper runtime: `f1600_170.hex`, from the ZKNOX/ETHFALCON helper-backed SHAKE path.
+- Differential oracle: `partylikeits1983/falcon512-stm32`, commit `ce324854bd66c7dc1ce4418f9573efdb21c6b048`.
 
 ## Layout
 
@@ -65,13 +73,13 @@ Current optimized snapshot:
 
 The current NIST-compatible verifier cannot get near `300,000` gas with this architecture: hash-to-point alone is already above that. Hitting that range would require a precompile/custom chain support or changing the trust/ABI model so the contract no longer performs full NIST hash-to-point and Falcon relation checks onchain.
 
-Major optimization choices:
+Gas optimization choices:
 
-- Removed the legacy raw verifier contracts from this standalone repo; the Solidity surface is the prepared optimized verifier.
+- Removed the legacy raw verifier contracts from this standalone repo; the Solidity surface is only the prepared optimized verifier.
 - Specialized verification to Falcon512 constants.
 - Matched the Rust verifier's Falcon512 shortness bound, `34,034,726`.
 - Matched the Rust public-key parser by reducing 14-bit public-key chunks modulo `q`.
-- Added the ZKNOX helper-backed SHAKE256 path and packed-SWAR NTT verifier core.
+- Uses the ZKNOX helper-backed SHAKE256 path and packed-SWAR NTT verifier core.
 - Avoided redundant calldata-to-memory copies for the prepared verifier's `salt`, `message`, `s2`, and `ntth` inputs.
 - Fused hash-to-point sampling with the `s1` norm check instead of materializing a 512-word hash array.
 - Consumed the inverse NTT product in 128-word packed form instead of unpacking it to 512 memory words.
