@@ -286,10 +286,7 @@ contract Falcon512ZKNOXOptimizedTest is Test {
         publicKey = _slice(out, SIG_LEN, PK_LEN);
     }
 
-    function _rustVerify(bytes memory signature, bytes memory publicKey, bytes memory message)
-        internal
-        returns (bool)
-    {
+    function _rustVerify(bytes memory signature, bytes memory publicKey, bytes memory message) internal returns (bool) {
         string[] memory cmd = new string[](5);
         cmd[0] = "./target/debug/falcon512-oracle";
         cmd[1] = "verify";
