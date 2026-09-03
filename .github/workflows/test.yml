@@ -29,14 +29,17 @@ jobs:
       - name: Rust oracle tests
         run: cargo test -p falcon512-oracle
 
+      - name: Build Rust oracle binary
+        run: cargo build -p falcon512-oracle
+
       - name: Forge format
         run: forge fmt --check
 
       - name: Forge build
         run: forge build --sizes
 
-      - name: Deterministic differential tests
-        run: forge test -vv --match-contract Falcon512DifferentialTest --match-test 'test_'
+      - name: Optimized verifier tests
+        run: forge test -vv --match-contract Falcon512ZKNOXOptimizedTest --match-test 'test_'
 
       - name: Differential fuzzing
-        run: forge test -vv --match-contract Falcon512DifferentialTest --match-test testFuzz_DifferentialMutations
+        run: forge test -vv --match-contract Falcon512ZKNOXOptimizedTest --match-test testFuzz_PreparedDifferentialMutations

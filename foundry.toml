@@ -5,6 +5,7 @@ libs = ["lib"]
 optimizer = true
 optimizer_runs = 1000000
 auto_detect_solc = true
+evm_version = "shanghai"
 ffi = true
 fuzz = { runs = 32, max_test_rejects = 65536 }
 
