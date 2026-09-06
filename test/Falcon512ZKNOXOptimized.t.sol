@@ -12,7 +12,17 @@ import {
     _unpackTo512,
     _vecMulPacked
 } from "../src/ZKNOX_NTT_falcon_packed.sol";
-import {hashToPointNISTFast} from "../src/ZKNOX_shake_fast.sol";
+import {hashToPointNISTFast, hashToPointNISTFastCalldata} from "../src/ZKNOX_shake_fast.sol";
+
+contract CalldataHashHarness {
+    function hash(bytes calldata salt, bytes calldata message, address helper)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return hashToPointNISTFastCalldata(salt, message, helper);
+    }
+}
 
 contract Falcon512ZKNOXOptimizedTest is Test {
     uint256 private constant SIG_LEN = 666;
@@ -36,6 +46,46 @@ contract Falcon512ZKNOXOptimizedTest is Test {
         assertTrue(prepared, "prepare failed");
         assertTrue(_rustVerify(signature, publicKey, message), "rust rejected valid signature");
         assertTrue(optimized.verifyPrepared(message, salt, s2, ntth), "optimized rejected valid signature");
+    }
+
+    function test_GasPreparedFixedVector() public {
+        bytes memory message = hex"00112233445566778899aabbccddeeff";
+        (bytes memory signature, bytes memory publicKey) =
+            _rustGenerate(bytes32(uint256(0x42)), bytes32(uint256(0x99)), message);
+        (, bytes memory salt, uint256[] memory s2, uint256[] memory ntth) = _prepare(signature, publicKey);
+        vm.cool(optimized.f1600Helper());
+        assertTrue(optimized.verifyPrepared(message, salt, s2, ntth));
+        uint256 used = vm.snapshotGasLastCall("prepared_fixed_vector");
+        emit log_named_uint("Prepared verification (cold helper)", used);
+    }
+
+    function testFuzz_ValidPrepared(bytes32 seed, uint16 messageLength) public {
+        bytes memory message = new bytes(uint256(messageLength) % 513);
+        for (uint256 i; i < message.length; ++i) {
+            message[i] = seed[i % 32];
+        }
+        (bytes memory signature, bytes memory publicKey) = _rustGenerate(seed, keccak256(abi.encode(seed)), message);
+        (bool prepared, bytes memory salt, uint256[] memory s2, uint256[] memory ntth) = _prepare(signature, publicKey);
+        assertTrue(prepared);
+        assertTrue(_rustVerify(signature, publicKey, message));
+        assertTrue(optimized.verifyPrepared(message, salt, s2, ntth));
+    }
+
+    function test_HashAbsorbBoundaries() public {
+        CalldataHashHarness harness = new CalldataHashHarness();
+        bytes memory salt = new bytes(40);
+        uint256[10] memory lengths = [uint256(0), 1, 94, 95, 96, 97, 231, 232, 233, 4096];
+        for (uint256 k; k < lengths.length; ++k) {
+            bytes memory message = new bytes(lengths[k]);
+            for (uint256 i; i < message.length; ++i) {
+                message[i] = bytes1(uint8(i));
+            }
+            assertEq(
+                harness.hash(salt, message, optimized.f1600Helper()),
+                hashToPointNISTFast(salt, message, optimized.f1600Helper()),
+                "calldata/memory absorption"
+            );
+        }
     }
 
     function test_UpstreamHashToPointVector() public view {
@@ -286,7 +336,10 @@ contract Falcon512ZKNOXOptimizedTest is Test {
         publicKey = _slice(out, SIG_LEN, PK_LEN);
     }
 
-    function _rustVerify(bytes memory signature, bytes memory publicKey, bytes memory message) internal returns (bool) {
+    function _rustVerify(bytes memory signature, bytes memory publicKey, bytes memory message)
+        internal
+        returns (bool)
+    {
         string[] memory cmd = new string[](5);
         cmd[0] = "./target/debug/falcon512-oracle";
         cmd[1] = "verify";
