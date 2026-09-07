@@ -195,39 +195,36 @@ function _nttFwPacked(uint256[] memory A) pure returns (uint256[] memory) {
             m := shl(1, m)
         }
 
-        // ---- t = 2, m = 128: lanes (0,1) against lanes (2,3), one twiddle
+        // Fuse the two in-word stages: one load, one store, one loop.
         for { let w := 0 } lt(w, 128) { w := add(w, 1) } {
             let p := add(base, shl(5, w))
             let W := mload(p)
-            let mi := add(128, w)
-            let S := and(shr(shl(4, and(mi, 0xf)), mload(add(psirev, shl(5, shr(4, mi))))), 0xffff)
-            let U := and(W, _L01)
-            let x := mul(and(shr(128, W), _L01), S)
-            let V := sub(x, mul(and(shr(40, mul(x, 89471204)), _MASK24L), 12289))
-            mstore(p, or(and(add(U, V), _L01), shl(128, and(sub(add(U, _BIG4Q), V), _L01))))
-        }
-
-        // ---- t = 1, m = 256: two twiddles inside the word
-        for { let w := 0 } lt(w, 128) { w := add(w, 1) } {
-            let p := add(base, shl(5, w))
-            let W := mload(p)
-            let ia := add(256, shl(1, w))
-            let Sa := and(shr(shl(4, and(ia, 0xf)), mload(add(psirev, shl(5, shr(4, ia))))), 0xffff)
-            let ib := add(ia, 1)
-            let Sb := and(shr(shl(4, and(ib, 0xf)), mload(add(psirev, shl(5, shr(4, ib))))), 0xffff)
-            let Ua := and(W, _L0)
-            let xa := mul(and(shr(64, W), _L0), Sa)
-            let Va := sub(xa, mul(and(shr(40, mul(xa, 89471204)), _MASK24L), 12289))
-            let Ub := and(shr(128, W), _L0)
-            let xb := mul(shr(192, W), Sb)
-            let Vb := sub(xb, mul(and(shr(40, mul(xb, 89471204)), _MASK24L), 12289))
-            mstore(
-                p,
-                or(
-                    or(and(add(Ua, Va), _LANE), shl(64, and(sub(add(Ua, _BIG4Q), Va), _LANE))),
-                    or(shl(128, and(add(Ub, Vb), _LANE)), shl(192, and(sub(add(Ub, _BIG4Q), Vb), _LANE)))
+            {
+                let mi := add(128, w)
+                let S := and(shr(shl(4, and(mi, 0xf)), mload(add(psirev, shl(5, shr(4, mi))))), 0xffff)
+                let U := and(W, _L01)
+                let x := mul(and(shr(128, W), _L01), S)
+                let V := sub(x, mul(and(shr(40, mul(x, 89471204)), _MASK24L), 12289))
+                W := or(and(add(U, V), _L01), shl(128, and(sub(add(U, _BIG4Q), V), _L01)))
+            }
+            {
+                let twiddles := shr(shl(5, and(w, 7)), mload(add(psirev, add(512, shl(5, shr(3, w))))))
+                let Sa := and(twiddles, 0xffff)
+                let Sb := and(shr(16, twiddles), 0xffff)
+                let Ua := and(W, _L0)
+                let xa := mul(and(shr(64, W), _L0), Sa)
+                let Va := mod(xa, 12289)
+                let Ub := and(shr(128, W), _L0)
+                let xb := mul(shr(192, W), Sb)
+                let Vb := mod(xb, 12289)
+                mstore(
+                    p,
+                    or(
+                        or(and(add(Ua, Va), _LANE), shl(64, and(sub(add(Ua, _BIG4Q), Va), _LANE))),
+                        or(shl(128, and(add(Ub, Vb), _LANE)), shl(192, and(sub(add(Ub, _BIG4Q), Vb), _LANE)))
+                    )
                 )
-            )
+            }
         }
     }
     return A;
@@ -268,12 +265,47 @@ function _vecMulPacked(uint256[] memory A, uint256[] memory B) pure returns (uin
     }
 }
 
+/// @notice Multiply in place by a compact calldata key, avoiding two 128-word
+/// allocations and a separate unpacking pass. Key lanes retain their existing
+/// uint16 interpretation; MULMOD also handles noncanonical key residues.
+function _vecMulCompactCalldataInPlace(uint256[] memory A, uint256[] calldata key) pure returns (uint256[] memory) {
+    assembly ("memory-safe") {
+        let dst := add(A, 32)
+        let end := add(dst, 4096)
+        let src := key.offset
+        for {} lt(dst, end) { src := add(src, 32) } {
+            let keyWord := calldataload(src)
+            for { let shift := 0 } lt(shift, 256) { shift := add(shift, 64) } {
+                let x := mload(dst)
+                let y := shr(shift, keyWord)
+                mstore(
+                    dst,
+                    or(
+                        or(
+                            mulmod(and(x, _LANE), and(y, 0xffff), q),
+                            shl(64, mulmod(and(shr(64, x), _LANE), and(shr(16, y), 0xffff), q))
+                        ),
+                        or(
+                            shl(128, mulmod(and(shr(128, x), _LANE), and(shr(32, y), 0xffff), q)),
+                            shl(192, mulmod(shr(192, x), and(shr(48, y), 0xffff), q))
+                        )
+                    )
+                )
+                dst := add(dst, 32)
+            }
+        }
+    }
+    return A;
+}
+
 /// @notice Inverse NTT (Gentleman-Sande), in place on 128 packed words.
-/// @dev Mirror image of the forward pass: here t = 1 and t = 2 come FIRST and
-///      are the in-word layers, then t = 4..256 are word-aligned. Both branches
-///      are Barrett-reduced every layer, which pins the lane bound at 2q instead
-///      of letting the additive branch double nine times (2^24, past what a
-///      single 2^40 Barrett can take). Worst observed Barrett product is 2^56.
+/// @dev Sums are left unreduced. Before stage k (1-based), each lane is
+///      < 2^(k-1)*q (the first two stages also use a conservative 4q bias).
+///      Word-aligned subtraction uses the matching doubling bias, so lanes
+///      never borrow. At the end lanes are < 512q. Both the largest twiddle
+///      product and the final scaling product are < 512q^2 < 2^37;
+///      multiplying by floor(2^40/q) stays below 2^64. Thus packed Barrett
+///      reduction remains lane-independent and yields a residue < 2q.
 function _nttInvPacked(uint256[] memory A) pure returns (uint256[] memory) {
     uint256[32] memory psirev = [
         0x222b0db009f121dc066e2b452386191d05192d2f19991026141a203605c70001,
@@ -313,48 +345,40 @@ function _nttInvPacked(uint256[] memory A) pure returns (uint256[] memory) {
     assembly ("memory-safe") {
         let base := add(A, 32)
 
-        // ---- t = 1, m = 512: each lane pair is its own group, two twiddles
+        // Fuse the two in-word inverse stages.
         for { let w := 0 } lt(w, 128) { w := add(w, 1) } {
             let p := add(base, shl(5, w))
             let W := mload(p)
-            let l0 := and(W, _LANE)
-            let l1 := and(shr(64, W), _LANE)
-            let l2 := and(shr(128, W), _LANE)
-            let l3 := shr(192, W)
+            {
+                let l0 := and(W, _LANE)
+                let l1 := and(shr(64, W), _LANE)
+                let l2 := and(shr(128, W), _LANE)
+                let l3 := shr(192, W)
 
-            let ia := add(256, shl(1, w))
-            let Sa := and(shr(shl(4, and(ia, 0xf)), mload(add(psirev, shl(5, shr(4, ia))))), 0xffff)
-            let ib := add(ia, 1)
-            let Sb := and(shr(shl(4, and(ib, 0xf)), mload(add(psirev, shl(5, shr(4, ib))))), 0xffff)
+                let twiddles := shr(shl(5, and(w, 7)), mload(add(psirev, add(512, shl(5, shr(3, w))))))
+                let Sa := and(twiddles, 0xffff)
+                let Sb := and(shr(16, twiddles), 0xffff)
 
-            let s0 := add(l0, l1)
-            s0 := sub(s0, mul(and(shr(40, mul(s0, 89471204)), _MASK24L), 12289))
-            let d0 := mul(sub(add(l0, 49156), l1), Sa)
-            d0 := sub(d0, mul(and(shr(40, mul(d0, 89471204)), _MASK24L), 12289))
-            let s1 := add(l2, l3)
-            s1 := sub(s1, mul(and(shr(40, mul(s1, 89471204)), _MASK24L), 12289))
-            let d1 := mul(sub(add(l2, 49156), l3), Sb)
-            d1 := sub(d1, mul(and(shr(40, mul(d1, 89471204)), _MASK24L), 12289))
+                let s0 := add(l0, l1)
+                let d0 := mul(sub(add(l0, 49156), l1), Sa)
+                d0 := mod(d0, 12289)
+                let s1 := add(l2, l3)
+                let d1 := mul(sub(add(l2, 49156), l3), Sb)
+                d1 := mod(d1, 12289)
 
-            mstore(
-                p,
-                or(or(and(s0, _LANE), shl(64, and(d0, _LANE))), or(shl(128, and(s1, _LANE)), shl(192, and(d1, _LANE))))
-            )
-        }
-
-        // ---- t = 2, m = 256: lanes (0,1) against lanes (2,3), one twiddle
-        for { let w := 0 } lt(w, 128) { w := add(w, 1) } {
-            let p := add(base, shl(5, w))
-            let W := mload(p)
-            let mi := add(128, w)
-            let S := and(shr(shl(4, and(mi, 0xf)), mload(add(psirev, shl(5, shr(4, mi))))), 0xffff)
-            let U := and(W, _L01)
-            let V := and(shr(128, W), _L01)
-            let s := add(U, V)
-            s := sub(s, mul(and(shr(40, mul(s, 89471204)), _MASK24L), 12289))
-            let d := mul(and(sub(add(U, _BIG4Q), V), _L01), S)
-            d := sub(d, mul(and(shr(40, mul(d, 89471204)), _MASK24L), 12289))
-            mstore(p, or(and(s, _L01), shl(128, and(d, _L01))))
+                W :=
+                    or(or(and(s0, _LANE), shl(64, and(d0, _LANE))), or(shl(128, and(s1, _LANE)), shl(192, and(d1, _LANE))))
+            }
+            {
+                let mi := add(128, w)
+                let S := and(shr(shl(4, and(mi, 0xf)), mload(add(psirev, shl(5, shr(4, mi))))), 0xffff)
+                let U := and(W, _L01)
+                let V := and(shr(128, W), _L01)
+                let s := add(U, V)
+                let d := mul(and(sub(add(U, _BIG4Q), V), _L01), S)
+                d := sub(d, mul(and(shr(40, mul(d, 89471204)), _MASK24L), 12289))
+                mstore(p, or(and(s, _L01), shl(128, and(d, _L01))))
+            }
         }
 
         // ---- t = 4 .. 256, word aligned
@@ -374,8 +398,7 @@ function _nttInvPacked(uint256[] memory A) pure returns (uint256[] memory) {
                     let U := mload(p)
                     let V := mload(pt)
                     let s := add(U, V)
-                    s := sub(s, mul(and(shr(40, mul(s, 89471204)), _MASK24L), 12289))
-                    let d := mul(sub(add(U, _BIG4Q), V), S)
+                    let d := mul(sub(add(U, mul(twds, _BIG4Q)), V), S)
                     d := sub(d, mul(and(shr(40, mul(d, 89471204)), _MASK24L), 12289))
                     mstore(p, s)
                     mstore(pt, d)

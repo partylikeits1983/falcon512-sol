@@ -26,5 +26,6 @@ function falcon_product_packed_words_calldata_with_s2_norm(uint256[] calldata s2
     uint256[] memory packedS2;
     (packedS2, norm, outOfRange) = _packFromCompactCalldataWithNorm(s2);
     if (outOfRange != 0) return (product, norm, outOfRange);
-    product = _nttInvPacked(_vecMulPacked(_nttFwPacked(packedS2), _packFromCompactCalldata(ntth)));
+    if (norm >= sigBound) return (product, norm, 1);
+    product = _nttInvPacked(_vecMulCompactCalldataInPlace(_nttFwPacked(packedS2), ntth));
 }

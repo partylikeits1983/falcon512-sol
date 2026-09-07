@@ -10,9 +10,59 @@ import {
     _unpackTo512,
     _vecMulPacked
 } from "../src/ZKNOX_NTT_falcon_packed.sol";
+import {falcon_product_packed_words_calldata_with_s2_norm} from "../src/ZKNOX_falcon_core_packed.sol";
+
+contract ProductHarness {
+    function product(uint256[] calldata a, uint256[] calldata key)
+        external
+        pure
+        returns (uint256[] memory, uint256, uint256)
+    {
+        return falcon_product_packed_words_calldata_with_s2_norm(a, key);
+    }
+}
 
 contract PackedArithmeticTest is Test {
     uint256 private constant Q = 12289;
+
+    function testFuzz_CalldataProductAndNorm(bytes32 seed) public {
+        uint256[] memory a = new uint256[](512);
+        uint256[] memory key = new uint256[](512);
+        uint256 expectedNorm;
+        for (uint256 i; i < 512; ++i) {
+            uint256 value = uint256(keccak256(abi.encode(seed, i)));
+            uint256 magnitude = value % 101;
+            a[i] = value & 256 == 0 || magnitude == 0 ? magnitude : Q - magnitude;
+            expectedNorm += magnitude * magnitude;
+            key[i] = (value >> 32) & 0xffff;
+        }
+        uint256[] memory compact = _ZKNOX_NTT_Compact(a);
+        uint256[] memory compactKey = _ZKNOX_NTT_Compact(key);
+        (uint256[] memory actual, uint256 norm, uint256 invalid) = new ProductHarness().product(compact, compactKey);
+        uint256[] memory expected = _unpackTo512(
+            _nttInvPacked(_vecMulPacked(_nttFwPacked(_packFromCompact(compact)), _packFromCompact(compactKey)))
+        );
+        assertEq(_unpackTo512(actual), expected, "calldata product");
+        assertEq(norm, expectedNorm, "centered norm");
+        assertEq(invalid, 0);
+    }
+
+    function test_RejectInvalidCoefficientsAndExcessiveNorm() public {
+        ProductHarness harness = new ProductHarness();
+        uint256[] memory compact = new uint256[](32);
+        uint256[] memory key = new uint256[](32);
+        for (uint256 lane; lane < 16; ++lane) {
+            compact[0] = Q << (16 * lane);
+            (,, uint256 invalid) = harness.product(compact, key);
+            assertTrue(invalid != 0);
+            compact[0] = uint256(65535) << (16 * lane);
+            (,, invalid) = harness.product(compact, key);
+            assertTrue(invalid != 0);
+        }
+        compact[0] = 6144;
+        (,, uint256 excessive) = harness.product(compact, key);
+        assertTrue(excessive != 0);
+    }
 
     // Scalar modular arithmetic and independently computed powers of the
     // primitive 1024th root 49, without the production twiddle tables or SWAR.

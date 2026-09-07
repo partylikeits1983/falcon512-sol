@@ -191,7 +191,7 @@ contract Falcon512ZKNOXOptimizedTest is Test {
         bytes memory runtime = vm.ffi(cmds);
         bytes memory initCode = abi.encodePacked(hex"61", uint16(runtime.length), hex"8061000d6000396000f3", runtime);
 
-        assembly {
+        assembly ("memory-safe") {
             helper := create(0, add(initCode, 32), mload(initCode))
         }
         require(helper != address(0), "f1600 helper create failed");
