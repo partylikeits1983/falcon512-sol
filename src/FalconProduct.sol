@@ -4,7 +4,7 @@
 pragma solidity ^0.8.25;
 
 import "./FalconNTT.sol";
-import "./FalconNTTFused.sol";
+import "./FalconNTTMontgomery.sol";
 
 function falcon_product_packed_calldata(uint256[] calldata s2, uint256[] calldata ntth)
     pure
@@ -20,15 +20,15 @@ function falcon_product_packed_words_calldata(uint256[] calldata s2, uint256[] c
     return _nttInvPacked(_vecMulPacked(_nttFwPacked(_packFromCompactCalldata(s2)), _packFromCompactCalldata(ntth)));
 }
 
-/// @dev A nonzero flag also signals early rejection when the s2 norm alone
+/// @dev Product uses 64 words of eight 32-bit lanes. A nonzero flag also signals early rejection when the s2 norm alone
 /// reaches the verifier's bound. Callers must check it before using product.
 function falcon_product_packed_words_calldata_with_s2_norm(uint256[] calldata s2, uint256[] calldata ntth)
     pure
     returns (uint256[] memory product, uint256 norm, uint256 outOfRange)
 {
     uint256[] memory packedS2;
-    (packedS2, norm, outOfRange) = _packFromCompactCalldataWithNorm(s2);
+    (packedS2, norm, outOfRange) = packSignature8(s2);
     if (outOfRange != 0) return (product, norm, outOfRange);
     if (norm >= sigBound) return (product, norm, 1);
-    product = falconProductFused(packedS2, ntth);
+    product = falconProductMontgomery8Native(packedS2, ntth);
 }

@@ -57,7 +57,7 @@ contract Falcon512VerifierTest is Test {
         assertTrue(optimized.verifyPrepared(message, salt, s2, ntth));
         uint256 used = vm.snapshotGasLastCall("prepared_fixed_vector");
         emit log_named_uint("Prepared verification (cold helper)", used);
-        assertLt(used, 880_000, "fixed-vector execution gas regression");
+        assertLt(used, 750_000, "fixed-vector execution gas regression");
         bytes memory callData = abi.encodeCall(optimized.verifyPrepared, (message, salt, s2, ntth));
         uint256 intrinsic = 21_000;
         for (uint256 i; i < callData.length; ++i) {
@@ -76,6 +76,106 @@ contract Falcon512VerifierTest is Test {
         assertTrue(prepared);
         assertTrue(_rustVerify(signature, publicKey, message));
         assertTrue(optimized.verifyPrepared(message, salt, s2, ntth));
+    }
+
+    function testFuzz_GeneratedSignaturesReachVerifier(
+        bytes32 keySeed,
+        bytes32 rngSeed,
+        bytes32 messageSeed,
+        uint16 messageLength,
+        uint16 index,
+        uint8 mask
+    ) public {
+        bytes memory message = new bytes(uint256(messageLength) % 1025);
+        for (uint256 i; i < message.length; ++i) {
+            message[i] = messageSeed[i % 32];
+        }
+        (bytes memory signature, bytes memory publicKey) = _rustGenerate(keySeed, rngSeed, message);
+        assertTrue(_assertPreparedMatchesRust(signature, publicKey, message), "fresh signature rejected");
+
+        // Every variant remains a valid prepared-input encoding and therefore
+        // reaches the actual verifier. Never silently skip preparation failures.
+        _assertPreparedMatchesRust(signature, publicKey, _flipOrAppend(message, index, mask == 0 ? 1 : mask));
+        _assertPreparedMatchesRust(_flip(signature, 1 + index % 40, mask == 0 ? 1 : mask), publicKey, message);
+
+        (bool decoded, uint256[] memory coefficients) = _decodeSignature(signature);
+        assertTrue(decoded);
+        bytes memory salt = _slice(signature, 1, 40);
+        assertEq(_encodeSignature(coefficients, salt), signature, "signature encoder round trip");
+        // Zero/one needs no more bits than the original coefficient, so this
+        // modification always fits the fixed-size compressed signature.
+        coefficients[index % 512] = coefficients[index % 512] == 0 ? 1 : 0;
+        _assertPreparedMatchesRust(_encodeSignature(coefficients, salt), publicKey, message);
+
+        (decoded, coefficients) = _decodePublicKey(publicKey);
+        assertTrue(decoded);
+        assertEq(_encodePublicKey(coefficients), publicKey, "public-key encoder round trip");
+        coefficients[index % 512] = (coefficients[index % 512] + 1 + uint256(mask)) % Q;
+        _assertPreparedMatchesRust(signature, _encodePublicKey(coefficients), message);
+    }
+
+    function _assertPreparedMatchesRust(bytes memory signature, bytes memory key, bytes memory message)
+        internal
+        returns (bool result)
+    {
+        (bool prepared, bytes memory salt, uint256[] memory s2, uint256[] memory ntth) = _prepare(signature, key);
+        assertTrue(prepared, "mutation failed preparation instead of reaching verifier");
+        result = optimized.verifyPrepared(message, salt, s2, ntth);
+        assertEq(result, _rustVerify(signature, key, message), "Solidity/Rust acceptance mismatch");
+    }
+
+    function _encodeSignature(uint256[] memory coefficients, bytes memory salt)
+        internal
+        pure
+        returns (bytes memory signature)
+    {
+        signature = new bytes(SIG_LEN);
+        signature[0] = 0x59;
+        for (uint256 i; i < 40; ++i) {
+            signature[1 + i] = salt[i];
+        }
+        uint256 acc;
+        uint256 bits;
+        uint256 cursor = 41;
+        for (uint256 i; i < 512; ++i) {
+            uint256 value = coefficients[i];
+            bool negative = value > Q / 2;
+            uint256 magnitude = negative ? Q - value : value;
+            require(magnitude <= 2047, "signature coefficient too large");
+            acc = (acc << 8) | (negative ? 128 : 0) | (magnitude & 127);
+            bits += 8;
+            for (uint256 j; j < magnitude / 128; ++j) {
+                acc <<= 1;
+                ++bits;
+            }
+            acc = (acc << 1) | 1;
+            ++bits;
+            while (bits >= 8) {
+                bits -= 8;
+                signature[cursor++] = bytes1(uint8(acc >> bits));
+            }
+            acc &= (uint256(1) << bits) - 1;
+        }
+        if (bits != 0) signature[cursor] = bytes1(uint8(acc << (8 - bits)));
+    }
+
+    function _encodePublicKey(uint256[] memory coefficients) internal pure returns (bytes memory key) {
+        key = new bytes(PK_LEN);
+        key[0] = 0x09;
+        uint256 acc;
+        uint256 bits;
+        uint256 cursor = 1;
+        for (uint256 i; i < 512; ++i) {
+            require(coefficients[i] < Q, "public-key coefficient too large");
+            acc = (acc << 14) | coefficients[i];
+            bits += 14;
+            while (bits >= 8) {
+                bits -= 8;
+                key[cursor++] = bytes1(uint8(acc >> bits));
+            }
+            acc &= (uint256(1) << bits) - 1;
+        }
+        assert(bits == 0 && cursor == PK_LEN);
     }
 
     function test_HashAbsorbBoundaries() public {
@@ -371,7 +471,7 @@ contract Falcon512VerifierTest is Test {
         returns (bytes memory signature, bytes memory publicKey)
     {
         string[] memory cmd = new string[](5);
-        cmd[0] = "./target/debug/falcon512-oracle";
+        cmd[0] = vm.envOr("FALCON_ORACLE", string("./target/debug/falcon512-oracle"));
         cmd[1] = "gen";
         cmd[2] = vm.toString(keySeed);
         cmd[3] = vm.toString(rngSeed);
@@ -386,7 +486,7 @@ contract Falcon512VerifierTest is Test {
 
     function _rustVerify(bytes memory signature, bytes memory publicKey, bytes memory message) internal returns (bool) {
         string[] memory cmd = new string[](5);
-        cmd[0] = "./target/debug/falcon512-oracle";
+        cmd[0] = vm.envOr("FALCON_ORACLE", string("./target/debug/falcon512-oracle"));
         cmd[1] = "verify";
         cmd[2] = vm.toString(signature);
         cmd[3] = vm.toString(publicKey);

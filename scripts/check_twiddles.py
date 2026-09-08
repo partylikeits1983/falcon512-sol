@@ -24,4 +24,38 @@ for word in range(128):
         fused.extend((forward[index], inverse[index]))
 assert tables("src/FalconNTTFused.sol") == [encoded(fused)]
 assert inverse[1] * pow(512, -1, Q) % Q == 1371
-print("NTT twiddle tables and fused normalization constant verified")
+
+R = 1 << 16
+forward_mont = [value * R % Q for value in forward]
+inverse_mont = [value * R % Q for value in inverse]
+wide = forward_mont[:64] + inverse_mont[:64]
+for word in range(64):
+    wide.extend((forward_mont[64 + word], inverse_mont[64 + word]))
+    for half in range(2):
+        index = 128 + 2 * word + half
+        wide.extend((forward_mont[index], inverse_mont[index]))
+        for index in (256 + 4 * word + 2 * half, 257 + 4 * word + 2 * half):
+            wide.extend((forward[index], inverse[index]))
+assert tables("src/FalconNTTMontgomery.sol") == [encoded(wide)]
+assert -pow(Q, -1, R) % R == 12287
+assert pow(512, -1, Q) * R % Q == 128
+assert inverse[1] * pow(512, -1, Q) * R % Q == 4977
+
+# Conservative integer inequalities proving the documented lane bounds.
+# REDC(x) <= floor((x + (R-1)*q)/R); each correction fits one 32-bit lane.
+bound = 1
+for bias in (2, 2, 2, 3, 3, 4):
+    max_product = (bound * Q - 1) * (Q - 1)
+    assert max_product + (R - 1) * Q < 1 << 32
+    assert (max_product + (R - 1) * Q) // R < bias * Q
+    bound += bias
+assert bound == 17
+assert (R - 1) * 12287 < 1 << 32
+assert (17 * Q - 1) * 21 < 1 << 32
+assert 21 == (1 << 18) // Q
+assert 17 * ((1 << 18) - 21 * Q) < 1 << 18
+inverse_max = (8 * Q - 1) * (Q - 1) + (R - 1) * Q
+assert inverse_max < 1 << 32 and inverse_max // R < 4 * Q
+for factor in (128, 4977):
+    assert ((8 * Q - 1) * factor + (R - 1) * Q) // R < 2 * Q
+print("NTT tables, field constants, and packed-lane bounds verified")

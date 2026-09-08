@@ -7,8 +7,13 @@ import {_nttFwPacked, _nttInvPacked, _packFromCompact, _unpackTo512, _vecMulPack
 import {_packFromCompactCalldata} from "../src/FalconNTT.sol";
 import {falcon_product_packed_words_calldata_with_s2_norm} from "../src/FalconProduct.sol";
 import {falconProductFused} from "../src/FalconNTTFused.sol";
+import {falconProductMontgomery8, expandProduct8} from "../src/FalconNTTMontgomery.sol";
 
 contract ProductHarness {
+    function rawMontgomery(uint256[] calldata a, uint256[] calldata key) external pure returns (uint256[] memory) {
+        return falconProductMontgomery8(_packFromCompactCalldata(a), key);
+    }
+
     function rawFused(uint256[] calldata a, uint256[] calldata key) external pure returns (uint256[] memory) {
         return falconProductFused(_packFromCompactCalldata(a), key);
     }
@@ -18,7 +23,9 @@ contract ProductHarness {
         pure
         returns (uint256[] memory, uint256, uint256)
     {
-        return falcon_product_packed_words_calldata_with_s2_norm(a, key);
+        (uint256[] memory p, uint256 norm, uint256 bad) = falcon_product_packed_words_calldata_with_s2_norm(a, key);
+        if (bad == 0) p = expandProduct8(p);
+        return (p, norm, bad);
     }
 }
 
@@ -55,12 +62,15 @@ contract PackedArithmeticTest is Test {
         uint256[] memory compact = compactPolynomial(a);
         uint256[] memory compactKey = compactPolynomial(key);
         uint256[] memory actual = new ProductHarness().rawFused(compact, compactKey);
+        uint256[] memory wide = new ProductHarness().rawMontgomery(compact, compactKey);
         uint256[] memory expected = _unpackTo512(
             _nttInvPacked(_vecMulPacked(_nttFwPacked(_packFromCompact(compact)), _packFromCompact(compactKey)))
         );
         assertEq(_unpackTo512(actual), expected);
+        assertEq(_unpackTo512(wide), expected, "eight-lane product");
         for (uint256 i; i < 512; ++i) {
             assertLt((actual[i / 4] >> (64 * (i % 4))) & type(uint64).max, 2 * Q, "sampler lane bound");
+            assertLt((wide[i / 4] >> (64 * (i % 4))) & type(uint64).max, 2 * Q, "eight-lane sampler bound");
         }
     }
 

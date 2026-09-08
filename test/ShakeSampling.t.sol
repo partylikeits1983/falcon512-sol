@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {Test} from "forge-std/Test.sol";
-import {_sampleShakeBlockNormPacked} from "../src/FalconShake.sol";
+import {_sampleShakeBlockNormPacked, _sampleShakeBlockNormPacked8} from "../src/FalconShake.sol";
 
 contract ShakeSamplingTest is Test {
     uint256 private constant Q = 12289;
@@ -48,6 +48,14 @@ contract ShakeSamplingTest is Test {
             ptr := add(blockData, 32)
         }
         (uint256 actualCount, uint256 actualNorm) = _sampleShakeBlockNormPacked(product, count, ptr, norm);
+        uint256[] memory wide = new uint256[](64);
+        for (uint256 i; i < 512; ++i) {
+            uint256 c = (product[i / 4] >> (64 * (i % 4))) & type(uint64).max;
+            wide[i / 8] |= c << (32 * (i % 8));
+        }
+        (uint256 wideCount, uint256 wideNorm) = _sampleShakeBlockNormPacked8(wide, count, ptr, norm);
+        assertEq(wideCount, actualCount, "eight-lane sample count");
+        assertEq(wideNorm, actualNorm, "eight-lane sample norm");
         for (uint256 j; j < 136 && count < 512; j += 2) {
             uint256 t = (uint256(uint8(blockData[j])) << 8) | uint8(blockData[j + 1]);
             if (t >= 5 * Q) continue;
