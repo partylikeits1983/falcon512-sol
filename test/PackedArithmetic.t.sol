@@ -2,15 +2,9 @@
 pragma solidity ^0.8.25;
 
 import {Test} from "forge-std/Test.sol";
-import {_ZKNOX_NTT_Compact} from "../src/ZKNOX_falcon_utils.sol";
-import {
-    _nttFwPacked,
-    _nttInvPacked,
-    _packFromCompact,
-    _unpackTo512,
-    _vecMulPacked
-} from "../src/ZKNOX_NTT_falcon_packed.sol";
-import {falcon_product_packed_words_calldata_with_s2_norm} from "../src/ZKNOX_falcon_core_packed.sol";
+import {compactPolynomial} from "../src/FalconUtils.sol";
+import {_nttFwPacked, _nttInvPacked, _packFromCompact, _unpackTo512, _vecMulPacked} from "../src/FalconNTT.sol";
+import {falcon_product_packed_words_calldata_with_s2_norm} from "../src/FalconProduct.sol";
 
 contract ProductHarness {
     function product(uint256[] calldata a, uint256[] calldata key)
@@ -54,8 +48,8 @@ contract PackedArithmeticTest is Test {
             expectedNorm += magnitude * magnitude;
             key[i] = (value >> 32) & 0xffff;
         }
-        uint256[] memory compact = _ZKNOX_NTT_Compact(a);
-        uint256[] memory compactKey = _ZKNOX_NTT_Compact(key);
+        uint256[] memory compact = compactPolynomial(a);
+        uint256[] memory compactKey = compactPolynomial(key);
         (uint256[] memory actual, uint256 norm, uint256 invalid) = new ProductHarness().product(compact, compactKey);
         uint256[] memory expected = _unpackTo512(
             _nttInvPacked(_vecMulPacked(_nttFwPacked(_packFromCompact(compact)), _packFromCompact(compactKey)))
@@ -135,7 +129,7 @@ contract PackedArithmeticTest is Test {
     }
 
     function _check(uint256[] memory a) internal pure {
-        uint256[] memory compact = _ZKNOX_NTT_Compact(a);
+        uint256[] memory compact = compactPolynomial(a);
         uint256[] memory transformed = _nttFwPacked(_packFromCompact(compact));
         assertEq(_unpackTo512(_nttInvPacked(_packTransformed(transformed))), a, "round trip");
         assertEq(_unpackTo512(transformed), _forward(a), "scalar forward");
@@ -143,7 +137,7 @@ contract PackedArithmeticTest is Test {
 
     function _packTransformed(uint256[] memory a) internal pure returns (uint256[] memory b) {
         // Canonicalize before inverse, as the pointwise multiplication does.
-        b = _packFromCompact(_ZKNOX_NTT_Compact(_unpackTo512(a)));
+        b = _packFromCompact(compactPolynomial(_unpackTo512(a)));
     }
 
     function testFuzz_ProductAgainstSchoolbook(bytes32 seed, uint16 index) public pure {
@@ -156,8 +150,8 @@ contract PackedArithmeticTest is Test {
         uint256[] memory actual = _unpackTo512(
             _nttInvPacked(
                 _vecMulPacked(
-                    _nttFwPacked(_packFromCompact(_ZKNOX_NTT_Compact(a))),
-                    _nttFwPacked(_packFromCompact(_ZKNOX_NTT_Compact(b)))
+                    _nttFwPacked(_packFromCompact(compactPolynomial(a))),
+                    _nttFwPacked(_packFromCompact(compactPolynomial(b)))
                 )
             )
         );

@@ -140,7 +140,7 @@ def main():
             init = b"\x61" + len(runtime).to_bytes(2, "big") + bytes.fromhex("8061000d6000396000f3") + runtime
             helper_receipt = send(init)
             helper = helper_receipt["contractAddress"]
-            artifact = json.loads((ROOT / "out/Falcon512ZKNOXOptimized.sol/Falcon512ZKNOXOptimized.json").read_text())
+            artifact = json.loads((ROOT / "out/Falcon512Verifier.sol/Falcon512Verifier.json").read_text())
             init = bytes.fromhex(artifact["bytecode"]["object"].removeprefix("0x")) + word(int(helper, 16))
             verifier_receipt = send(init)
             verifier = verifier_receipt["contractAddress"]

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-// FILE: ZKNOX_falcon_core_packed.sol
+// FILE: FalconProduct.sol
 // Product builders for the packed-SWAR NTT verifier path.
 pragma solidity ^0.8.25;
 
-import "./ZKNOX_NTT_falcon_packed.sol";
+import "./FalconNTT.sol";
 
 function falcon_product_packed_calldata(uint256[] calldata s2, uint256[] calldata ntth)
     pure

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// FILE: ZKNOX_NTT_falcon_packed.sol
+// FILE: FalconNTT.sol
 //
 // Packed-SWAR forward NTT for Falcon-512 (q = 12289, n = 512).
 //
@@ -20,7 +20,7 @@
 // t = 2 still shares one twiddle across the word, t = 1 needs two.
 pragma solidity ^0.8.25;
 
-import "./ZKNOX_falcon_utils.sol";
+import "./FalconUtils.sol";
 
 uint256 constant _M40 = 89471204; // floor(2^40 / q)
 uint256 constant _MASK24L = 0x0000000000ffffff0000000000ffffff0000000000ffffff0000000000ffffff;
@@ -213,7 +213,7 @@ function _nttFwPacked(uint256[] memory A) pure returns (uint256[] memory) {
 /// @notice Lane-wise product of two packed polynomials, fully Barrett-reduced.
 /// @dev SWAR cannot multiply two packed vectors (lanes cross-contaminate), so
 ///      each of the four lanes is extracted and multiplied on its own. The win
-///      over _ZKNOX_VECMULMOD is not the arithmetic, it is never materialising
+///      over scalar multiplication is not the arithmetic, it is never materialising
 ///      the 512-word expanded form.
 function _vecMulPacked(uint256[] memory A, uint256[] memory B) pure returns (uint256[] memory C) {
     C = new uint256[](128);

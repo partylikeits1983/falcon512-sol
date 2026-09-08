@@ -1,9 +1,7 @@
-// Copyright (C) 2026 - ZKNOX
-// License: This software is licensed under MIT License
-// This Code may be reused including this header, license and copyright notice.
-// FILE: ZKNOX_falcon_utils.sol
-// Description: Utility functions and constants for Falcon signature verification
 // SPDX-License-Identifier: MIT
+// Attribution and original copyright/license notices are in README.md.
+// FILE: FalconUtils.sol
+// Description: Utility functions and constants for Falcon signature verification
 pragma solidity ^0.8.25;
 
 /// @dev Mask for extracting 16-bit values from uint256
@@ -74,7 +72,7 @@ function Swap(uint256[] memory Pol) pure returns (uint256[] memory Mirror) {
 /// @dev Each word stores coefficients as: word = c0 | (c1<<16) | (c2<<32) | ... | (c15<<240)
 /// @param a Expanded polynomial (512 coefficients as separate uint256 values)
 /// @return b Compacted polynomial (32 uint256 words, each containing 16 coefficients)
-function _ZKNOX_NTT_Compact(uint256[] memory a) pure returns (uint256[] memory b) {
+function compactPolynomial(uint256[] memory a) pure returns (uint256[] memory b) {
     b = new uint256[](32);
 
     assembly ("memory-safe") {
@@ -92,10 +90,10 @@ function _ZKNOX_NTT_Compact(uint256[] memory a) pure returns (uint256[] memory b
 
 /// @notice Expands a compacted polynomial from 32 uint256 values to 512 uint256 values
 /// @dev Unpacks 16 coefficients (each 16 bits) from each 256-bit word into separate uint256 values
-/// @dev Inverse operation of _ZKNOX_NTT_Compact
+/// @dev Inverse operation of compactPolynomial
 /// @param a Compacted polynomial (32 uint256 words)
 /// @return b Expanded polynomial (512 coefficients as separate uint256 values)
-function _ZKNOX_NTT_Expand(uint256[] memory a) pure returns (uint256[] memory b) {
+function expandPolynomial(uint256[] memory a) pure returns (uint256[] memory b) {
     b = new uint256[](512);
 
     /*
@@ -130,7 +128,7 @@ function _ZKNOX_NTT_Expand(uint256[] memory a) pure returns (uint256[] memory b)
 /// @param buf Byte buffer containing compressed polynomial data
 /// @param offset Starting position in buffer (typically 1 to skip header byte 0x09)
 /// @return Decompressed polynomial as array of 512 uint256 coefficients
-function _ZKNOX_NTT_Decompress(bytes memory buf, uint256 offset) pure returns (uint256[] memory) {
+function decompressPolynomial(bytes memory buf, uint256 offset) pure returns (uint256[] memory) {
     uint256[] memory x = new uint256[](512);
     uint32 acc = 0;
     uint256 acc_len = 0;

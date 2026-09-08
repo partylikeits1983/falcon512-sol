@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
-import {Falcon512ZKNOXOptimized} from "../src/Falcon512ZKNOXOptimized.sol";
-import {_ZKNOX_NTT_Compact} from "../src/ZKNOX_falcon_utils.sol";
+import {Falcon512Verifier} from "../src/Falcon512Verifier.sol";
+import {compactPolynomial} from "../src/FalconUtils.sol";
 import {
     _compactFromPacked,
     _nttFwPacked,
@@ -11,8 +11,8 @@ import {
     _packFromCompact,
     _unpackTo512,
     _vecMulPacked
-} from "../src/ZKNOX_NTT_falcon_packed.sol";
-import {hashToPointNISTFast, hashToPointNISTFastCalldata} from "../src/ZKNOX_shake_fast.sol";
+} from "../src/FalconNTT.sol";
+import {hashToPointNISTFast, hashToPointNISTFastCalldata} from "../src/FalconShake.sol";
 
 contract CalldataHashHarness {
     function hash(bytes calldata salt, bytes calldata message, address helper)
@@ -24,16 +24,16 @@ contract CalldataHashHarness {
     }
 }
 
-contract Falcon512ZKNOXOptimizedTest is Test {
+contract Falcon512VerifierTest is Test {
     uint256 private constant SIG_LEN = 666;
     uint256 private constant PK_LEN = 897;
     uint256 private constant Q = 12289;
 
-    Falcon512ZKNOXOptimized private optimized;
+    Falcon512Verifier private optimized;
 
     function setUp() public {
         address helper = _deployF1600Helper();
-        optimized = new Falcon512ZKNOXOptimized(helper);
+        optimized = new Falcon512Verifier(helper);
     }
 
     function test_RustGeneratedPreparedSignatureVerifies() public {
@@ -124,8 +124,8 @@ contract Falcon512ZKNOXOptimizedTest is Test {
     }
 
     function test_HelperCodeHashAndFailedCalls() public {
-        vm.expectRevert(Falcon512ZKNOXOptimized.BadHelper.selector);
-        new Falcon512ZKNOXOptimized(address(0));
+        vm.expectRevert(Falcon512Verifier.BadHelper.selector);
+        new Falcon512Verifier(address(0));
         // A helper cannot normally change code; simulate failure to check
         // the STATICCALL success and return-size checks fail closed.
         vm.etch(optimized.f1600Helper(), hex"00");
@@ -136,15 +136,15 @@ contract Falcon512ZKNOXOptimizedTest is Test {
         optimized.verifyPrepared("", new bytes(40), new uint256[](32), new uint256[](32));
     }
 
-    function test_UpstreamHashToPointVector() public view {
+    function test_HashToPointKnownAnswerVector() public view {
         bytes memory salt =
             "\x4b\x09\x9f\x8e\x30\x0f\x01\xb8\x65\x0f\x1f\x4b\x1d\x8f\xcf\x3f\x3c\xb5\x3f\xb8\xe9\xeb\x2e\xa2\x03\xbd\xc9\x70\xf5\x0a\xe5\x54\x28\xa9\x1f\x7f\x53\xac\x26\x6b";
-        bytes memory message = "My name is Renaud from ZKNOX!!!!";
+        bytes memory message = "Falcon512 SHAKE256 test vector";
 
         uint256[] memory hash = hashToPointNISTFast(salt, message, optimized.f1600Helper());
 
-        assertEq(hash[0], 2578, "hash[0]");
-        assertEq(hash[511], 11296, "hash[511]");
+        assertEq(hash[0], 9929, "hash[0]");
+        assertEq(hash[511], 7339, "hash[511]");
     }
 
     function test_PackedCoreAcceptsRustVector() public {
@@ -269,13 +269,13 @@ contract Falcon512ZKNOXOptimizedTest is Test {
         }
 
         salt = _slice(signature, 1, 40);
-        s2 = _ZKNOX_NTT_Compact(expandedS2);
+        s2 = compactPolynomial(expandedS2);
         ntth = _nttPublicKey(h);
         ok = true;
     }
 
     function _nttPublicKey(uint256[] memory h) internal pure returns (uint256[] memory) {
-        return _compactFromPacked(_nttFwPacked(_packFromCompact(_ZKNOX_NTT_Compact(h))));
+        return _compactFromPacked(_nttFwPacked(_packFromCompact(compactPolynomial(h))));
     }
 
     function _packedProduct(uint256[] memory s2, uint256[] memory ntth) internal pure returns (uint256[] memory) {

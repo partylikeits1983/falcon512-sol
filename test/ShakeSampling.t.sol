@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {Test} from "forge-std/Test.sol";
-import {_sampleShakeBlockNormPacked} from "../src/ZKNOX_shake_fast.sol";
+import {_sampleShakeBlockNormPacked} from "../src/FalconShake.sol";
 
 contract ShakeSamplingTest is Test {
     uint256 private constant Q = 12289;

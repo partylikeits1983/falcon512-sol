@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Portions Copyright (c) 2026 Fireblocks Ltd. - MIT
 // from fireblocks-labs/evm-ml-dsa-verifier @ cca262b, src/FastKeccak170.sol
-// FILE: ZKNOX_shake_fast.sol
+// FILE: FalconShake.sol
 //
 // Drop-in replacement for the SHAKE256 XOF used by hashToPointNIST.
 //
@@ -13,10 +13,10 @@
 // 25-lane state passed in and out in place.
 //
 // hashToPointNISTFast below keeps the rejection sampler of
-// ZKNOX_HashToPoint.hashToPointNIST byte for byte. Only the XOF changes.
+// the Falcon hash-to-point algorithm byte for byte. Only the XOF changes.
 pragma solidity ^0.8.25;
 
-import "./ZKNOX_falcon_utils.sol";
+import "./FalconUtils.sol";
 
 uint256 constant _M64_170 = 0xffffffffffffffff;
 uint256 constant _RATE_FAST = 136;
@@ -391,7 +391,7 @@ function shake256Fast(bytes memory input, uint256 outLen, address helper) view r
 }
 
 /// @notice hashToPointNIST with the pure-Solidity SHAKE replaced by the helper-backed one.
-/// @dev The rejection sampler is IDENTICAL to ZKNOX_HashToPoint.hashToPointNIST:
+/// @dev The rejection sampler is IDENTICAL to the Falcon hash-to-point algorithm:
 ///      same big-endian 16-bit reads out of a `bytes memory` rate block, same
 ///      `< kq` acceptance, same `% q`. Only the XOF underneath changes, so the
 ///      delta is the SHAKE cost and nothing else.

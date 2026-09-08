@@ -39,10 +39,10 @@ jobs:
         run: forge build --sizes
 
       - name: Optimized verifier tests
-        run: forge test -vv --match-contract Falcon512ZKNOXOptimizedTest --match-test 'test_'
+        run: forge test -vv --match-contract Falcon512VerifierTest --match-test 'test_'
 
       - name: Differential fuzzing
-        run: forge test -vv --match-contract Falcon512ZKNOXOptimizedTest --match-test 'testFuzz_' --fuzz-runs 64
+        run: forge test -vv --match-contract Falcon512VerifierTest --match-test 'testFuzz_' --fuzz-runs 64
 
       - name: Independent arithmetic and sampling fuzzing
         run: forge test -vv --match-contract 'PackedArithmeticTest|ShakeSamplingTest' --fuzz-runs 1024
