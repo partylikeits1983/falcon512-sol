@@ -108,28 +108,539 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
         mstore(A, 64)
         let base := add(A, 32)
         let table := add(twiddles, 32)
+        // BEGIN GENERATED FORWARD
         {
-            let m := 1
-            let bias := _Q2L32
-            for { let twds := 32 } gt(twds, 0) { twds := shr(1, twds) } {
-                if eq(m, 8) { bias := _Q3L32 }
-                if eq(m, 32) { bias := _Q4L32 }
-                let step := shl(5, twds)
-                for { let i := 0 } lt(i, m) { i := add(i, 1) } {
-                    let s := shr(240, mload(add(table, shl(1, add(m, i)))))
-                    let p := add(base, shl(1, mul(i, step)))
-                    let end := add(p, step)
-                    for {} lt(p, end) { p := add(p, 32) } {
-                        let pt := add(p, step)
-                        let u := mload(p)
-                        let v := mont(mul(mload(pt), s))
-                        mstore(p, add(u, v))
-                        mstore(pt, sub(add(u, bias), v))
-                    }
+            // Forward t=256: all 32 packed butterflies share root[1].
+            {
+                let p := base
+                let s := shr(240, mload(add(table, 2)))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
                 }
-                m := shl(1, m)
+                {
+                    let pa := add(p, 32)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 64)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 96)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 128)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 160)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 192)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 224)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 256)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 288)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 320)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 352)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 384)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 416)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 448)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 480)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 512)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 544)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 576)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 608)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 640)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 672)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 704)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 736)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 768)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 800)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 832)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 864)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 896)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 928)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 960)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 992)
+                    let pt := add(pa, 1024)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+            }
+            for { let w := 0 } lt(w, 2) { w := add(w, 1) } {
+                let p := add(base, mul(1024, w))
+                let s := shr(240, mload(add(add(table, 4), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 32)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 64)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 96)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 128)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 160)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 192)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 224)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 256)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 288)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 320)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 352)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 384)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 416)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 448)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 480)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+            }
+            for { let w := 0 } lt(w, 4) { w := add(w, 1) } {
+                let p := add(base, mul(512, w))
+                let s := shr(240, mload(add(add(table, 8), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 32)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 64)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 96)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 128)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 160)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 192)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+                {
+                    let pa := add(p, 224)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q2L32), v))
+                }
+            }
+            for { let w := 0 } lt(w, 8) { w := add(w, 1) } {
+                let p := add(base, mul(256, w))
+                let s := shr(240, mload(add(add(table, 16), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 128)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q3L32), v))
+                }
+                {
+                    let pa := add(p, 32)
+                    let pt := add(pa, 128)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q3L32), v))
+                }
+                {
+                    let pa := add(p, 64)
+                    let pt := add(pa, 128)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q3L32), v))
+                }
+                {
+                    let pa := add(p, 96)
+                    let pt := add(pa, 128)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q3L32), v))
+                }
+            }
+            for { let w := 0 } lt(w, 16) { w := add(w, 1) } {
+                let p := add(base, mul(128, w))
+                let s := shr(240, mload(add(add(table, 32), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 64)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q3L32), v))
+                }
+                {
+                    let pa := add(p, 32)
+                    let pt := add(pa, 64)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q3L32), v))
+                }
+            }
+            for { let w := 0 } lt(w, 32) { w := add(w, 1) } {
+                let p := add(base, mul(64, w))
+                let s := shr(240, mload(add(add(table, 64), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 32)
+                    let u := mload(pa)
+                    let v := mont(mul(mload(pt), s))
+                    mstore(pa, add(u, v))
+                    mstore(pt, sub(add(u, _Q4L32), v))
+                }
             }
         }
+        // END GENERATED FORWARD
         {
             let middle := add(table, 256)
             for { let w := 0 } lt(w, 64) { w := add(w, 1) } {
@@ -149,40 +660,573 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                 mstore(p, or(bound4q(add(a, b)), shl(128, d)))
             }
         }
+        // BEGIN GENERATED INVERSE
         {
             let inverse := add(table, 128)
-            let m := 64
-            for { let twds := 1 } gt(m, 2) { twds := shl(1, twds) } {
-                let h := shr(1, m)
-                let step := shl(5, twds)
-                let stride := shl(1, step)
-                let g := base
-                for { let i := 0 } lt(i, h) { i := add(i, 1) } {
-                    let s := shr(240, mload(add(inverse, shl(1, add(h, i)))))
-                    let p := g
-                    let end := add(p, step)
-                    for {} lt(p, end) { p := add(p, 32) } {
-                        let pt := add(p, step)
-                        let u := mload(p)
-                        let v := mload(pt)
-                        let d := mont(mul(sub(add(u, _Q4L32), v), s))
-                        mstore(p, bound4q(add(u, v)))
-                        mstore(pt, d)
-                    }
-                    g := add(g, stride)
+            for { let w := 0 } lt(w, 32) { w := add(w, 1) } {
+                let p := add(base, mul(64, w))
+                let s := shr(240, mload(add(add(inverse, 64), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 32)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
                 }
-                m := shr(1, m)
+            }
+            for { let w := 0 } lt(w, 16) { w := add(w, 1) } {
+                let p := add(base, mul(128, w))
+                let s := shr(240, mload(add(add(inverse, 32), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 64)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 32)
+                    let pt := add(pa, 64)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+            }
+            for { let w := 0 } lt(w, 8) { w := add(w, 1) } {
+                let p := add(base, mul(256, w))
+                let s := shr(240, mload(add(add(inverse, 16), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 128)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 32)
+                    let pt := add(pa, 128)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 64)
+                    let pt := add(pa, 128)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 96)
+                    let pt := add(pa, 128)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+            }
+            for { let w := 0 } lt(w, 4) { w := add(w, 1) } {
+                let p := add(base, mul(512, w))
+                let s := shr(240, mload(add(add(inverse, 8), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 32)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 64)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 96)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 128)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 160)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 192)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 224)
+                    let pt := add(pa, 256)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+            }
+            for { let w := 0 } lt(w, 2) { w := add(w, 1) } {
+                let p := add(base, mul(1024, w))
+                let s := shr(240, mload(add(add(inverse, 4), shl(1, w))))
+                {
+                    let pa := add(p, 0)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 32)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 64)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 96)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 128)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 160)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 192)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 224)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 256)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 288)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 320)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 352)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 384)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 416)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 448)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
+                {
+                    let pa := add(p, 480)
+                    let pt := add(pa, 512)
+                    let u := mload(pa)
+                    let v := mload(pt)
+                    let d := mont(mul(sub(add(u, _Q4L32), v), s))
+                    mstore(pa, bound4q(add(u, v)))
+                    mstore(pt, d)
+                }
             }
         }
+        // END GENERATED INVERSE
         // 128 = R/512; 4977 = inverseRoot[1]*R/512 mod q. Both scaled
         // products are <q*R for inputs <8q, giving final residues below 2q.
-        for { let p := base } lt(p, add(base, 1024)) { p := add(p, 32) } {
-            let pt := add(p, 1024)
-            let u := mload(p)
-            let v := mload(pt)
-            mstore(p, mont(shl(7, add(u, v))))
-            mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+        // BEGIN GENERATED NORMALIZE
+        {
+            let p := base
+            {
+                let pa := add(p, 0)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 32)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 64)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 96)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 128)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 160)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 192)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 224)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 256)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 288)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 320)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 352)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 384)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 416)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 448)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 480)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 512)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 544)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 576)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 608)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 640)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 672)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 704)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 736)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 768)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 800)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 832)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 864)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 896)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 928)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 960)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
+            {
+                let pa := add(p, 992)
+                let pt := add(pa, 1024)
+                let u := mload(pa)
+                let v := mload(pt)
+                mstore(pa, mont(shl(7, add(u, v))))
+                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
+            }
         }
+        // END GENERATED NORMALIZE
     }
     return A;
 }

@@ -165,7 +165,7 @@ def main():
                 ], text=True).strip().removeprefix("0x"))
                 salt, s2, key = prepare(generated[:666], generated[666:])
                 call = encode_call(selector, message, salt, s2, key)
-                receipt = send(call, verifier, gas=1_000_000 if length < 96 else 5_000_000)
+                receipt = send(call, verifier, gas=1_000_000 if length <= 512 else 5_000_000)
                 intrinsic = 21_000 + sum(4 if byte == 0 else 16 for byte in call)
                 gas_used = int(receipt["gasUsed"], 16)
                 print(json.dumps({

@@ -22,11 +22,11 @@ Commit timestamps requested by the repository owner: first two commits use
 
 ## Result
 
-The fixed-vector cold-helper execution cost decreased from 1,048,550 to 737,593
-gas. The actual transaction consumes 790,601 gas. Full message-length and
+The fixed-vector cold-helper execution cost decreased from 1,048,550 to 713,557
+gas. The actual transaction consumes 766,565 gas. Full message-length and
 deployment measurements are in the README and can be reproduced with
 `python3 scripts/benchmark.py`. The complete table uses Shanghai rules.
-The 0-, 16-, and 95-byte transactions were also tested with Osaka rules on a
+The 0-, 16-, 95-, and 512-byte transactions were also tested with Osaka rules on a
 newer Anvil and have identical gas costs; both forks are covered in CI.
 
 The implementation preserves the prepared-input ABI and arithmetic semantics,
@@ -99,6 +99,19 @@ individual coefficients or the older four-lane representation. The old kernels
 and conversion helpers remain independent comparison paths for tests and are
 eliminated from the deployed verifier by the compiler.
 
+## Loop specialization
+
+All word-aligned butterfly bodies and the final normalization are unrolled.
+The field operations, twiddle ordering, and bounds above remain unchanged.
+`scripts/generate_ntt_loops.py` derives each offset, stage bias, and root index
+from the stage width and checks the checked-in assembly. Regenerate with
+`--write`, then run `forge fmt`; CI checks the generated sections.
+
+The measured runtime is 24,172 bytes, leaving 404 bytes below the deployment
+limit. This deliberately prioritizes per-verification gas over deployment gas:
+the verifier now costs 5,230,673 gas to deploy, plus the unchanged reusable
+helper's deployment. Both deployments were exercised on Shanghai and Osaka.
+
 ## Measured progression
 
 | Kernel | Fixed-vector execution gas |
@@ -110,13 +123,14 @@ eliminated from the deployed verifier by the compiler.
 | Deferred forward reductions | 770,603 |
 | Native signature packing | 752,761 |
 | Native product sampling | 737,593 |
+| Fully unrolled word butterflies and normalization | 713,557 |
 
 ## Validation
 
 - 1,024 fuzz cases each for forward/round-trip NTT, full calldata product and
   centered norm, full-range fused products (four- and eight-lane kernels),
   selected schoolbook product coefficients, and SHAKE sampling in both layouts.
-- 64 valid-signature and 64 mutation cases against the Rust oracle, including
+- 1,024 valid-signature and 1,024 mutation cases against the Rust oracle, including
   messages through 512 bytes. The Rust crate itself currently has no unit tests;
   its verification function is exercised through Foundry FFI.
 - 1,024 newly generated signatures with messages through 1,024 bytes, each
@@ -127,9 +141,9 @@ eliminated from the deployed verifier by the compiler.
 - Zero, maximal and alternating polynomial coefficients, invalid uint16 lanes,
   malformed lengths, excessive norms, rejection thresholds, sampler completion
   within an unrolled group, and helper return-size/revert failures.
-- Solidity/Rust formatting, build and contract-size checks, a 750,000 execution
+- Solidity/Rust formatting, build and contract-size checks, a 720,000 execution
   gas ceiling on the fixed vector, and actual short-message transactions with
-  a 1,000,000 gas limit.
+  a 1,000,000 gas limit, including the 512-byte vector (995,921 transaction gas).
 
 ## Limits and further work
 
@@ -150,12 +164,18 @@ use project-specific names, with original attribution retained in the README.
 The global optimization goal remains active. A theoretical minimum has not
 been proven; a successful gas regression test cannot establish that claim.
 
-The next major target is the helper-backed Keccak-f permutation and its sponge
-integration. Benchmark permutations separately before changing the helper ABI
-or code hash. A packed implementation of theta/chi across several rows is a
-candidate; any replacement must match all state lanes and Python SHAKE vectors,
-respect EIP-170, and win under Osaka transaction accounting. Smaller remaining
-candidates include specialization of high NTT stages and sampler loop layout.
+The helper-backed Keccak-f permutation and sponge integration remain candidates
+for further work. Any replacement must match all state lanes and Python SHAKE
+vectors, respect EIP-170, and win under Osaka transaction accounting. The NTT
+word loops are now fully unrolled. Remaining candidates include branchless
+centered norms and sampler layout; every change must be measured within the
+remaining bytecode allowance.
+
+A packed-column Keccak prototype matched all 25 lanes of the existing helper
+on 64 random states, but was slower. The existing permutation costs 41,373 gas;
+the best prototype compilation measured 77,292 gas. The standard Solidity
+optimizer duplicated large expressions across memory stores. The prototype
+was not integrated; the existing helper remains in production.
 
 Before moving between optimization targets, generate 1,024 fresh signatures
 with fuzzed key/signing seeds and run the prepared-mutation gate documented in

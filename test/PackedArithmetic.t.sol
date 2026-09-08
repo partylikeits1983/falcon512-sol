@@ -7,9 +7,20 @@ import {_nttFwPacked, _nttInvPacked, _packFromCompact, _unpackTo512, _vecMulPack
 import {_packFromCompactCalldata} from "../src/FalconNTT.sol";
 import {falcon_product_packed_words_calldata_with_s2_norm} from "../src/FalconProduct.sol";
 import {falconProductFused} from "../src/FalconNTTFused.sol";
-import {falconProductMontgomery8, expandProduct8} from "../src/FalconNTTMontgomery.sol";
+import {
+    falconProductMontgomery8,
+    falconProductMontgomery8Native,
+    packSignature8,
+    expandProduct8
+} from "../src/FalconNTTMontgomery.sol";
 
 contract ProductHarness {
+    function rawNative(uint256[] calldata a, uint256[] calldata key) external pure returns (uint256[] memory) {
+        (uint256[] memory packed,, uint256 bad) = packSignature8(a);
+        require(bad == 0);
+        return falconProductMontgomery8Native(packed, key);
+    }
+
     function rawMontgomery(uint256[] calldata a, uint256[] calldata key) external pure returns (uint256[] memory) {
         return falconProductMontgomery8(_packFromCompactCalldata(a), key);
     }
@@ -63,12 +74,16 @@ contract PackedArithmeticTest is Test {
         uint256[] memory compactKey = compactPolynomial(key);
         uint256[] memory actual = new ProductHarness().rawFused(compact, compactKey);
         uint256[] memory wide = new ProductHarness().rawMontgomery(compact, compactKey);
+        uint256[] memory nativeProduct = new ProductHarness().rawNative(compact, compactKey);
         uint256[] memory expected = _unpackTo512(
             _nttInvPacked(_vecMulPacked(_nttFwPacked(_packFromCompact(compact)), _packFromCompact(compactKey)))
         );
         assertEq(_unpackTo512(actual), expected);
         assertEq(_unpackTo512(wide), expected, "eight-lane product");
         for (uint256 i; i < 512; ++i) {
+            uint256 lane = (nativeProduct[i / 8] >> (32 * (i % 8))) & type(uint32).max;
+            assertLt(lane, 2 * Q, "native output lane bound before conversion");
+            assertEq(lane % Q, expected[i], "native output coefficient");
             assertLt((actual[i / 4] >> (64 * (i % 4))) & type(uint64).max, 2 * Q, "sampler lane bound");
             assertLt((wide[i / 4] >> (64 * (i % 4))) & type(uint64).max, 2 * Q, "eight-lane sampler bound");
         }

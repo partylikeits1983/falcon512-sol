@@ -1,8 +1,14 @@
 # Falcon512 Solidity Verifier
 
-Gas-optimized Foundry/Rust repo for a prepared-input Falcon512 verifier.
-The fixed valid signature costs **737,593 execution gas**, or **790,601 gas
-as a transaction**, down from 1,048,550 execution gas (29.7% reduction).
+**766,565 gas per verification transaction** for the fixed valid Falcon512
+signature with a 16-byte message. This includes **713,557 execution gas** plus
+53,008 gas for the transaction base and calldata. Execution gas is **31.9% lower**
+than the original 1,048,550 gas.
+
+These figures measure `Falcon512Verifier.verifyPrepared` with a cold SHAKE
+helper. Inputs are prepared offchain; deployment is a separate, one-time cost.
+The measured 512-byte-message transaction also fits below one million gas,
+at **995,921 gas**. Costs for each tested message length are below.
 
 ## Gas
 
@@ -10,25 +16,25 @@ Actual transactions on a fresh local Anvil instance, Shanghai rules, Solidity
 0.8.36, IR compiler, optimizer runs 1,000,000. Each verification starts with a
 cold helper. Transaction gas includes the 21,000 base and calldata costs:
 
-| Message bytes | Execution gas | Transaction gas |
+| Message bytes | Execution gas | Total transaction gas |
 | ---: | ---: | ---: |
-| 0 | 737,994 | 791,030 |
-| 16 (fixed Rust vector) | 737,593 | 790,601 |
-| 95 | 786,566 | 841,198 |
-| 96 | 781,265 | 835,729 |
-| 232 | 872,670 | 929,310 |
-| 512 | 959,161 | 1,019,957 |
-| 1,024 | 1,089,904 | 1,159,168 |
+| 0 | 713,958 | 766,994 |
+| 16 (fixed Rust vector) | 713,557 | 766,565 |
+| 95 | 762,530 | 817,162 |
+| 96 | 757,229 | 811,693 |
+| 232 | 848,634 | 905,274 |
+| 512 | 935,125 | 995,921 |
+| 1,024 | 1,065,868 | 1,135,132 |
 
 These are deterministic vectors, not a worst-case bound. SHAKE rejection
 sampling changes the number of permutations, and longer messages need more
-absorption blocks. **The sub-million target is met for the tested short
-messages; it is not a guarantee for every message/signature.**
+absorption blocks. **The sub-million target is met for the tested
+messages through 512 bytes; it is not a guarantee for every message/signature.**
 
-The 0-, 16-, and 95-byte cases also produce the same transaction gas under
+The 0-, 16-, 95-, and 512-byte cases also produce the same transaction gas under
 Osaka rules, checked in CI with `--hardfork osaka`.
 
-Verifier deployment: 2,125,232 gas; runtime: 9,644 bytes; initcode: 9,836 bytes
+Verifier deployment: 5,230,673 gas; runtime: 24,172 bytes; initcode: 24,364 bytes
 before constructor arguments. The separate, reusable SHAKE helper costs
 4,716,332 gas to deploy and has a 21,622-byte runtime.
 
@@ -37,7 +43,10 @@ The verifier processes eight polynomial coefficients per EVM word, using
 the inner transforms with key multiplication and merges inverse normalization
 into the final butterflies. Signature packing and hash sampling both use this
 layout directly, with no intermediate polynomial conversion. Packed validation,
-unrolled sampling, and early norm rejection further reduce cost. See [the optimization notes](OPTIMIZATION.md).
+unrolled sampling, and early norm rejection further reduce cost. The NTT word
+butterflies are fully unrolled: this lowers each verification cost at the expense
+of larger bytecode and higher one-time deployment gas. The runtime is 404 bytes
+below the 24,576-byte contract size limit. See [the optimization notes](OPTIMIZATION.md).
 
 ## Provenance
 
@@ -81,6 +90,7 @@ forge test --match-contract 'PackedArithmeticTest|ShakeSamplingTest' --fuzz-runs
 forge test --match-test 'testFuzz_' --match-contract Falcon512VerifierTest --fuzz-runs 64
 python3 scripts/benchmark.py
 python3 scripts/check_twiddles.py
+python3 scripts/generate_ntt_loops.py
 ```
 
 Before moving to another optimization target, run the fresh-signature gate:
