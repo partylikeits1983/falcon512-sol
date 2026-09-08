@@ -4,6 +4,7 @@
 pragma solidity ^0.8.25;
 
 import "./FalconNTT.sol";
+import "./FalconNTTFused.sol";
 
 function falcon_product_packed_calldata(uint256[] calldata s2, uint256[] calldata ntth)
     pure
@@ -29,5 +30,5 @@ function falcon_product_packed_words_calldata_with_s2_norm(uint256[] calldata s2
     (packedS2, norm, outOfRange) = _packFromCompactCalldataWithNorm(s2);
     if (outOfRange != 0) return (product, norm, outOfRange);
     if (norm >= sigBound) return (product, norm, 1);
-    product = _nttInvPacked(_vecMulCompactCalldataInPlace(_nttFwPacked(packedS2), ntth));
+    product = falconProductFused(packedS2, ntth);
 }

@@ -4,9 +4,15 @@ pragma solidity ^0.8.25;
 import {Test} from "forge-std/Test.sol";
 import {compactPolynomial} from "../src/FalconUtils.sol";
 import {_nttFwPacked, _nttInvPacked, _packFromCompact, _unpackTo512, _vecMulPacked} from "../src/FalconNTT.sol";
+import {_packFromCompactCalldata} from "../src/FalconNTT.sol";
 import {falcon_product_packed_words_calldata_with_s2_norm} from "../src/FalconProduct.sol";
+import {falconProductFused} from "../src/FalconNTTFused.sol";
 
 contract ProductHarness {
+    function rawFused(uint256[] calldata a, uint256[] calldata key) external pure returns (uint256[] memory) {
+        return falconProductFused(_packFromCompactCalldata(a), key);
+    }
+
     function product(uint256[] calldata a, uint256[] calldata key)
         external
         pure
@@ -18,6 +24,45 @@ contract ProductHarness {
 
 contract PackedArithmeticTest is Test {
     uint256 private constant Q = 12289;
+
+    function testFuzz_FusedProductFullRange(bytes32 seed) public {
+        uint256[] memory a = new uint256[](512);
+        uint256[] memory key = new uint256[](512);
+        for (uint256 i; i < 512; ++i) {
+            uint256 random = uint256(keccak256(abi.encode(seed, i)));
+            a[i] = random % Q;
+            key[i] = (random >> 32) & 0xffff;
+        }
+        _checkFused(a, key);
+    }
+
+    function test_FusedProductExtremes() public {
+        uint256[] memory a = new uint256[](512);
+        uint256[] memory key = new uint256[](512);
+        _checkFused(a, key);
+        for (uint256 i; i < 512; ++i) {
+            a[i] = Q - 1;
+            key[i] = 65535;
+        }
+        _checkFused(a, key);
+        for (uint256 i; i < 512; ++i) {
+            a[i] = i % 2 == 0 ? 0 : Q - 1;
+        }
+        _checkFused(a, key);
+    }
+
+    function _checkFused(uint256[] memory a, uint256[] memory key) internal {
+        uint256[] memory compact = compactPolynomial(a);
+        uint256[] memory compactKey = compactPolynomial(key);
+        uint256[] memory actual = new ProductHarness().rawFused(compact, compactKey);
+        uint256[] memory expected = _unpackTo512(
+            _nttInvPacked(_vecMulPacked(_nttFwPacked(_packFromCompact(compact)), _packFromCompact(compactKey)))
+        );
+        assertEq(_unpackTo512(actual), expected);
+        for (uint256 i; i < 512; ++i) {
+            assertLt((actual[i / 4] >> (64 * (i % 4))) & type(uint64).max, 2 * Q, "sampler lane bound");
+        }
+    }
 
     function test_GasPolynomialStages() public {
         uint256[] memory compact = new uint256[](32);
