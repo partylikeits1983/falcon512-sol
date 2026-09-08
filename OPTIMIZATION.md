@@ -22,8 +22,8 @@ Commit timestamps requested by the repository owner: first two commits use
 
 ## Result
 
-The fixed-vector cold-helper execution cost decreased from 1,048,550 to 713,557
-gas. The actual transaction consumes 766,565 gas. Full message-length and
+The fixed-vector cold-helper execution cost decreased from 1,048,550 to 674,203
+gas. The actual transaction consumes 727,211 gas. Full message-length and
 deployment measurements are in the README and can be reproduced with
 `python3 scripts/benchmark.py`. The complete table uses Shanghai rules.
 The 0-, 16-, 95-, and 512-byte transactions were also tested with Osaka rules on a
@@ -99,6 +99,32 @@ individual coefficients or the older four-lane representation. The old kernels
 and conversion helpers remain independent comparison paths for tests and are
 eliminated from the deployed verifier by the compiler.
 
+## Packed sum of squares and centered sampling
+
+Signature packing spreads eight uint16 coefficients into eight uint32 lanes
+with three mask/shift steps. Adding 0x67ff independently to each lane exposes
+the comparison with 6144 in bit 15. A conditional complement and addition of
+q+1, masked to 16 bits, produces each centered magnitude without a branch.
+
+Let B=2^32 and A=sum(a[i]*B^i), where 0<=a[i]<=6144 for each of eight lanes.
+Multiply A by its lane reversal. The coefficient of B^7 is sum(a[i]^2).
+Every convolution coefficient is at most 8*6144^2=301,989,888, below B, so
+there are no inter-lane carries. SHR(224, MUL(A, reverse(A))) therefore returns
+all eight squares summed exactly. Higher polynomial terms are discarded by
+EVM word truncation. Invalid signature lanes still set the range flag and are
+rejected before this norm is used.
+
+The sampler uses `(t + 30722 - productCoefficient) % q - 6144`, with
+30722=2q+6144. The MOD argument is nonnegative because product lanes are below
+2q. This combines reduction and centering into one MOD and one subtraction,
+without a comparison or conditional branch. Negative results are represented
+modulo 2^256; squaring with MUL returns the exact nonnegative square since
+its magnitude is at most 6144.
+
+The Python constant checker exhausts all q scalar centering inputs. Solidity
+fuzz tests compare the full-range packed norm with scalar sums and exercise
+all lanes at both 6144 and 6145, as well as random valid signatures and mutations.
+
 ## Loop specialization
 
 All word-aligned butterfly bodies and the final normalization are unrolled.
@@ -107,9 +133,9 @@ The field operations, twiddle ordering, and bounds above remain unchanged.
 from the stage width and checks the checked-in assembly. Regenerate with
 `--write`, then run `forge fmt`; CI checks the generated sections.
 
-The measured runtime is 24,172 bytes, leaving 404 bytes below the deployment
+The measured runtime is 24,509 bytes, leaving 67 bytes below the deployment
 limit. This deliberately prioritizes per-verification gas over deployment gas:
-the verifier now costs 5,230,673 gas to deploy, plus the unchanged reusable
+the verifier now costs 5,301,151 gas to deploy, plus the unchanged reusable
 helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 
 ## Measured progression
@@ -124,6 +150,9 @@ helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 | Native signature packing | 752,761 |
 | Native product sampling | 737,593 |
 | Fully unrolled word butterflies and normalization | 713,557 |
+| Branchless scalar centering | 703,195 |
+| Packed signature sum of squares | 682,907 |
+| Centering folded into sampler reduction | 674,203 |
 
 ## Validation
 
@@ -141,9 +170,9 @@ helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 - Zero, maximal and alternating polynomial coefficients, invalid uint16 lanes,
   malformed lengths, excessive norms, rejection thresholds, sampler completion
   within an unrolled group, and helper return-size/revert failures.
-- Solidity/Rust formatting, build and contract-size checks, a 720,000 execution
+- Solidity/Rust formatting, build and contract-size checks, a 680,000 execution
   gas ceiling on the fixed vector, and actual short-message transactions with
-  a 1,000,000 gas limit, including the 512-byte vector (995,921 transaction gas).
+  a 1,000,000 gas limit, including the 512-byte vector (956,903 transaction gas).
 
 ## Limits and further work
 
@@ -167,8 +196,8 @@ been proven; a successful gas regression test cannot establish that claim.
 The helper-backed Keccak-f permutation and sponge integration remain candidates
 for further work. Any replacement must match all state lanes and Python SHAKE
 vectors, respect EIP-170, and win under Osaka transaction accounting. The NTT
-word loops are now fully unrolled. Remaining candidates include branchless
-centered norms and sampler layout; every change must be measured within the
+word loops are now fully unrolled. Remaining candidates include sampler
+loop layout and SHAKE state handling; every change must be measured within the
 remaining bytecode allowance.
 
 A packed-column Keccak prototype matched all 25 lanes of the existing helper

@@ -58,4 +58,15 @@ inverse_max = (8 * Q - 1) * (Q - 1) + (R - 1) * Q
 assert inverse_max < 1 << 32 and inverse_max // R < 4 * Q
 for factor in (128, 4977):
     assert ((8 * Q - 1) * factor + (R - 1) * Q) // R < 2 * Q
+
+# Packed norm: exhaustive scalar centering and convolution carry bounds.
+for coefficient in range(Q):
+    sign = (coefficient + 0x67ff) >> 15
+    centered = ((coefficient ^ (sign * 65535)) + sign * (Q + 1)) & 65535
+    assert centered == min(coefficient, Q - coefficient)
+    folded = (coefficient + Q // 2) % Q - Q // 2
+    assert folded * folded == centered * centered
+assert 30722 == 2 * Q + Q // 2
+assert 8 * (Q // 2) ** 2 < 1 << 32
+assert 512 * (Q // 2) ** 2 < 1 << 256
 print("NTT tables, field constants, and packed-lane bounds verified")

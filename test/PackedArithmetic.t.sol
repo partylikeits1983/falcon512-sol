@@ -14,13 +14,15 @@ import {
     expandProduct8
 } from "../src/FalconNTTMontgomery.sol";
 
-contract ProductHarness {
-    function rawNative(uint256[] calldata a, uint256[] calldata key) external pure returns (uint256[] memory) {
-        (uint256[] memory packed,, uint256 bad) = packSignature8(a);
+contract NativeProductHarness {
+    function rawNative(uint256[] calldata a, uint256[] calldata key) external pure returns (uint256[] memory, uint256) {
+        (uint256[] memory packed, uint256 norm, uint256 bad) = packSignature8(a);
         require(bad == 0);
-        return falconProductMontgomery8Native(packed, key);
+        return (falconProductMontgomery8Native(packed, key), norm);
     }
+}
 
+contract ProductHarness {
     function rawMontgomery(uint256[] calldata a, uint256[] calldata key) external pure returns (uint256[] memory) {
         return falconProductMontgomery8(_packFromCompactCalldata(a), key);
     }
@@ -67,6 +69,16 @@ contract PackedArithmeticTest is Test {
             a[i] = i % 2 == 0 ? 0 : Q - 1;
         }
         _checkFused(a, key);
+        // Maximal centered magnitude in every lane stresses the packed
+        // sum-of-squares carry bound on both sides of the centering threshold.
+        for (uint256 i; i < 512; ++i) {
+            a[i] = Q / 2;
+        }
+        _checkFused(a, key);
+        for (uint256 i; i < 512; ++i) {
+            a[i] = Q / 2 + 1;
+        }
+        _checkFused(a, key);
     }
 
     function _checkFused(uint256[] memory a, uint256[] memory key) internal {
@@ -74,19 +86,23 @@ contract PackedArithmeticTest is Test {
         uint256[] memory compactKey = compactPolynomial(key);
         uint256[] memory actual = new ProductHarness().rawFused(compact, compactKey);
         uint256[] memory wide = new ProductHarness().rawMontgomery(compact, compactKey);
-        uint256[] memory nativeProduct = new ProductHarness().rawNative(compact, compactKey);
+        (uint256[] memory nativeProduct, uint256 nativeNorm) = new NativeProductHarness().rawNative(compact, compactKey);
         uint256[] memory expected = _unpackTo512(
             _nttInvPacked(_vecMulPacked(_nttFwPacked(_packFromCompact(compact)), _packFromCompact(compactKey)))
         );
         assertEq(_unpackTo512(actual), expected);
         assertEq(_unpackTo512(wide), expected, "eight-lane product");
+        uint256 expectedNorm;
         for (uint256 i; i < 512; ++i) {
+            uint256 magnitude = a[i] > Q / 2 ? Q - a[i] : a[i];
+            expectedNorm += magnitude * magnitude;
             uint256 lane = (nativeProduct[i / 8] >> (32 * (i % 8))) & type(uint32).max;
             assertLt(lane, 2 * Q, "native output lane bound before conversion");
             assertEq(lane % Q, expected[i], "native output coefficient");
             assertLt((actual[i / 4] >> (64 * (i % 4))) & type(uint64).max, 2 * Q, "sampler lane bound");
             assertLt((wide[i / 4] >> (64 * (i % 4))) & type(uint64).max, 2 * Q, "eight-lane sampler bound");
         }
+        assertEq(nativeNorm, expectedNorm, "native full-range signature norm");
     }
 
     function test_GasPolynomialStages() public {

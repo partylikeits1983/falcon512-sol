@@ -1,14 +1,14 @@
 # Falcon512 Solidity Verifier
 
-**766,565 gas per verification transaction** for the fixed valid Falcon512
-signature with a 16-byte message. This includes **713,557 execution gas** plus
-53,008 gas for the transaction base and calldata. Execution gas is **31.9% lower**
+**727,211 gas per verification transaction** for the fixed valid Falcon512
+signature with a 16-byte message. This includes **674,203 execution gas** plus
+53,008 gas for the transaction base and calldata. Execution gas is **35.7% lower**
 than the original 1,048,550 gas.
 
 These figures measure `Falcon512Verifier.verifyPrepared` with a cold SHAKE
 helper. Inputs are prepared offchain; deployment is a separate, one-time cost.
 The measured 512-byte-message transaction also fits below one million gas,
-at **995,921 gas**. Costs for each tested message length are below.
+at **956,903 gas**. Costs for each tested message length are below.
 
 ## Gas
 
@@ -18,13 +18,13 @@ cold helper. Transaction gas includes the 21,000 base and calldata costs:
 
 | Message bytes | Execution gas | Total transaction gas |
 | ---: | ---: | ---: |
-| 0 | 713,958 | 766,994 |
-| 16 (fixed Rust vector) | 713,557 | 766,565 |
-| 95 | 762,530 | 817,162 |
-| 96 | 757,229 | 811,693 |
-| 232 | 848,634 | 905,274 |
-| 512 | 935,125 | 995,921 |
-| 1,024 | 1,065,868 | 1,135,132 |
+| 0 | 674,184 | 727,220 |
+| 16 (fixed Rust vector) | 674,203 | 727,211 |
+| 95 | 722,300 | 776,932 |
+| 96 | 717,785 | 772,249 |
+| 232 | 809,238 | 865,878 |
+| 512 | 896,107 | 956,903 |
+| 1,024 | 1,026,154 | 1,095,418 |
 
 These are deterministic vectors, not a worst-case bound. SHAKE rejection
 sampling changes the number of permutations, and longer messages need more
@@ -34,7 +34,7 @@ messages through 512 bytes; it is not a guarantee for every message/signature.**
 The 0-, 16-, 95-, and 512-byte cases also produce the same transaction gas under
 Osaka rules, checked in CI with `--hardfork osaka`.
 
-Verifier deployment: 5,230,673 gas; runtime: 24,172 bytes; initcode: 24,364 bytes
+Verifier deployment: 5,301,151 gas; runtime: 24,509 bytes; initcode: 24,701 bytes
 before constructor arguments. The separate, reusable SHAKE helper costs
 4,716,332 gas to deploy and has a 21,622-byte runtime.
 
@@ -42,10 +42,12 @@ The verifier processes eight polynomial coefficients per EVM word, using
 32-bit Montgomery lanes and stage-specific bounds. Its assembly kernel fuses
 the inner transforms with key multiplication and merges inverse normalization
 into the final butterflies. Signature packing and hash sampling both use this
-layout directly, with no intermediate polynomial conversion. Packed validation,
+layout directly, with no intermediate polynomial conversion. One packed
+multiplication sums eight signature squares, and hash sampling folds centering
+into modular reduction without a branch. Packed validation,
 unrolled sampling, and early norm rejection further reduce cost. The NTT word
 butterflies are fully unrolled: this lowers each verification cost at the expense
-of larger bytecode and higher one-time deployment gas. The runtime is 404 bytes
+of larger bytecode and higher one-time deployment gas. The runtime is 67 bytes
 below the 24,576-byte contract size limit. See [the optimization notes](OPTIMIZATION.md).
 
 ## Provenance

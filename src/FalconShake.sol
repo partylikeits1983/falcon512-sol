@@ -355,20 +355,23 @@ function _sampleShakeBlockNormPacked8(uint256[] memory product, uint256 count, u
     returns (uint256 nextCount, uint256 nextNorm)
 {
     assembly ("memory-safe") {
+        // Centering may represent a negative integer modulo 2^256. MUL
+        // returns its exact nonnegative square because |s1| <= 6144.
         let productBase := add(product, 32)
         // Coefficients are little-endian 32-bit lanes in big-endian words.
         // XOR maps sequential coefficient offsets to their memory positions.
         let offset := shl(2, count)
         // Four candidates per iteration; every acceptance checks the output
         // bound, including completion in the middle of this unrolled group.
-        // Product lanes are < 2q, so one MOD reduces both inputs/difference.
+        // 30722 = 2q + floor(q/2). Product lanes are <2q, so subtraction
+        // stays nonnegative. MOD then subtracting floor(q/2) directly gives
+        // the centered difference in [-6144,6144].
         for { let j := 0 } lt(j, _RATE_FAST) { j := add(j, 8) } {
             {
                 let t := shr(240, mload(add(outPtr, j)))
                 if and(lt(t, kq), lt(offset, 2048)) {
                     let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                    let s1i := mod(sub(add(t, 24578), coefficient), q)
-                    if gt(s1i, qs1) { s1i := sub(q, s1i) }
+                    let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
                     norm := add(norm, mul(s1i, s1i))
                     offset := add(offset, 4)
                 }
@@ -377,8 +380,7 @@ function _sampleShakeBlockNormPacked8(uint256[] memory product, uint256 count, u
                 let t := shr(240, mload(add(outPtr, add(j, 2))))
                 if and(lt(t, kq), lt(offset, 2048)) {
                     let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                    let s1i := mod(sub(add(t, 24578), coefficient), q)
-                    if gt(s1i, qs1) { s1i := sub(q, s1i) }
+                    let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
                     norm := add(norm, mul(s1i, s1i))
                     offset := add(offset, 4)
                 }
@@ -387,8 +389,7 @@ function _sampleShakeBlockNormPacked8(uint256[] memory product, uint256 count, u
                 let t := shr(240, mload(add(outPtr, add(j, 4))))
                 if and(lt(t, kq), lt(offset, 2048)) {
                     let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                    let s1i := mod(sub(add(t, 24578), coefficient), q)
-                    if gt(s1i, qs1) { s1i := sub(q, s1i) }
+                    let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
                     norm := add(norm, mul(s1i, s1i))
                     offset := add(offset, 4)
                 }
@@ -397,8 +398,7 @@ function _sampleShakeBlockNormPacked8(uint256[] memory product, uint256 count, u
                 let t := shr(240, mload(add(outPtr, add(j, 6))))
                 if and(lt(t, kq), lt(offset, 2048)) {
                     let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                    let s1i := mod(sub(add(t, 24578), coefficient), q)
-                    if gt(s1i, qs1) { s1i := sub(q, s1i) }
+                    let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
                     norm := add(norm, mul(s1i, s1i))
                     offset := add(offset, 4)
                 }

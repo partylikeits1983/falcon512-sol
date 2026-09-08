@@ -33,23 +33,35 @@ function falconProductMontgomery8(uint256[] memory A, uint256[] calldata key) pu
 
 /// @notice Validate, center, and pack compact signature coefficients as eight lanes.
 /// @dev Eight coefficients per word: only 64 words are allocated.
+/// The norm is meaningful only when outOfRange == 0.
 function packSignature8(uint256[] calldata signature)
     pure
     returns (uint256[] memory A, uint256 norm, uint256 outOfRange)
 {
     A = new uint256[](64);
     assembly ("memory-safe") {
-        function packNorm4(v) -> packed, norm4 {
-            let a := and(v, 0xffff)
-            let b := and(shr(16, v), 0xffff)
-            let c := and(shr(32, v), 0xffff)
-            let d := shr(48, v)
-            packed := or(or(a, shl(32, b)), or(shl(64, c), shl(96, d)))
-            if gt(a, 6144) { a := sub(12289, a) }
-            if gt(b, 6144) { b := sub(12289, b) }
-            if gt(c, 6144) { c := sub(12289, c) }
-            if gt(d, 6144) { d := sub(12289, d) }
-            norm4 := add(add(mul(a, a), mul(b, b)), add(mul(c, c), mul(d, d)))
+        function pack8(v) -> r {
+            // Spread eight uint16 coefficients into eight uint32 lanes.
+            v := and(or(v, shl(64, v)), 0x0000000000000000ffffffffffffffff0000000000000000ffffffffffffffff)
+            v := and(or(v, shl(32, v)), 0x00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff)
+            r := and(or(v, shl(16, v)), _M16L32)
+        }
+        function norm8(v) -> r {
+            // Guard bit 15 marks v >= 6145 independently in each lane.
+            let signs :=
+                and(shr(15, add(v, 0x000067ff000067ff000067ff000067ff000067ff000067ff000067ff000067ff)), _ONES32)
+            let a := and(add(xor(v, mul(signs, 65535)), mul(signs, 12290)), _M16L32)
+            // For negative coefficients: (~v & 65535) + q + 1, modulo
+            // 65536, equals q-v. No intermediate reaches the next lane.
+            let rev := or(shl(128, a), shr(128, a))
+            let mask := and(rev, _PAIR64)
+            rev := or(shl(64, mask), shr(64, xor(rev, mask)))
+            mask := and(rev, 0x00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff)
+            rev := or(shl(32, mask), shr(32, xor(rev, mask)))
+            // The degree-seven coefficient of a * reverse(a) is the sum
+            // of eight squares. Every product coefficient is <=8*6144^2
+            // <2^32, so lower coefficients cannot carry into this lane.
+            r := shr(224, mul(a, rev))
         }
         let base := add(A, 32)
         for { let w := 0 } lt(w, 64) { w := add(w, 1) } {
@@ -61,10 +73,9 @@ function packSignature8(uint256[] calldata signature)
                     0x80008000800080008000800080008000
                 )
             )
-            let low, lowNorm := packNorm4(and(v, _LANE))
-            let high, highNorm := packNorm4(shr(64, v))
-            mstore(add(base, shl(5, w)), or(low, shl(128, high)))
-            norm := add(norm, add(lowNorm, highNorm))
+            let packed := pack8(v)
+            mstore(add(base, shl(5, w)), packed)
+            norm := add(norm, norm8(packed))
         }
     }
 }
