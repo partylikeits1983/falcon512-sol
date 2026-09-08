@@ -136,7 +136,7 @@ def main():
                 assert int(receipt["status"], 16) == 1, receipt
                 return receipt
 
-            runtime = bytes.fromhex((ROOT / "test/fixtures/f1600_170.hex").read_text().strip())
+            runtime = bytes.fromhex((ROOT / "test/fixtures/f1600_resident.hex").read_text().strip())
             init = b"\x61" + len(runtime).to_bytes(2, "big") + bytes.fromhex("8061000d6000396000f3") + runtime
             helper_receipt = send(init)
             helper = helper_receipt["contractAddress"]

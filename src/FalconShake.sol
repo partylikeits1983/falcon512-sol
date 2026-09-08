@@ -5,15 +5,13 @@
 //
 // Drop-in replacement for the SHAKE256 XOF used by hashToPointNIST.
 //
-// The sponge glue (_xorBlockFast170 / _squeezeBlockFast170 / f1600Fast170) is
-// taken verbatim from fireblocks-labs/evm-ml-dsa-verifier (MIT),
-// src/FastKeccak170.sol. The Keccak-f[1600] permutation itself is NOT Solidity
-// here: it is a 21,622-byte fully-unrolled raw-runtime helper contract
-// (helpers/f1600_170.hex in that repository) reached by STATICCALL, with the
-// 25-lane state passed in and out in place.
+// The clean-lane sponge glue derives from Fireblocks FastKeccak170.sol.
+// Production keeps four copies of each uint64 lane between permutations.
+// scripts/generate_resident_helper.py wraps the unchanged pinned permutation
+// body with clean-lane and resident-lane interfaces. The original helper is
+// retained as an independent test reference.
 //
-// hashToPointNISTFast below keeps the rejection sampler of
-// the Falcon hash-to-point algorithm byte for byte. Only the XOF changes.
+// The rejection sampler and SHAKE256 domain/padding remain Falcon-compatible.
 pragma solidity ^0.8.25;
 
 import "./FalconUtils.sol";
@@ -453,7 +451,7 @@ function _sampleShakeBlockNormPacked8(uint256[] memory product, uint256 count, u
     }
 }
 
-/// @dev Read the 17 rate lanes directly; each state word must fit uint64.
+/// @dev Read the low uint64 of each of the 17 rate lanes directly.
 /// The 25-word helper state uses lane i=x+5*y and little-endian lane bytes.
 function _sampleShakeStateNormPacked8(uint256[] memory product, uint256 count, uint256[25] memory st, uint256 norm)
     pure
@@ -475,7 +473,7 @@ function _sampleShakeStateNormPacked8(uint256[] memory product, uint256 count, u
         switch gt(count, 444)
         case 0 {
             for { let j := 0 } lt(j, 544) { j := add(j, 32) } {
-                let lane := mload(add(st, j))
+                let lane := and(mload(add(st, j)), _M64_170)
                 let low := and(lane, 0x00ff00ff00ff00ff)
                 lane := or(shl(8, low), shr(8, xor(lane, low)))
                 // Adding 4091 to the low 15 bits cannot carry into another lane.
@@ -568,7 +566,7 @@ function _sampleShakeStateNormPacked8(uint256[] memory product, uint256 count, u
         }
         default {
             for { let j := 0 } and(lt(j, 544), lt(offset, 2048)) { j := add(j, 32) } {
-                let lane := mload(add(st, j))
+                let lane := and(mload(add(st, j)), _M64_170)
                 let low := and(lane, 0x00ff00ff00ff00ff)
                 lane := or(shl(8, low), shr(8, xor(lane, low)))
                 // Adding 4091 to the low 15 bits cannot carry into another lane.
@@ -794,16 +792,207 @@ function verifyWithHashToPointNISTFastCalldataPackedProduct(
     uint256 count = 0;
 
     uint256[25] memory st;
-    _absorbSaltMessageCalldataFast170(st, salt, msgHash, helper);
+    _absorbSaltMessageCalldataResident(st, salt, msgHash, helper);
 
     unchecked {
         while (count < n) {
             (count, norm) = _sampleShakeStateNormPacked8(product, count, st, norm);
             if (norm >= sigBound) return false;
             if (count == n) break;
-            f1600Fast170(st, helper);
+            f1600Resident(st, helper);
         }
     }
 
     return norm < sigBound;
+}
+
+/// @dev The preceding word is allocated caller memory and is ignored by the helper.
+/// State lanes remain four copies of uint64 throughout absorption and squeezing.
+function f1600Resident(uint256[25] memory st, address helper) view {
+    bool ok;
+    assembly ("memory-safe") {
+        ok := staticcall(gas(), helper, sub(st, 32), 832, st, 800)
+        ok := and(ok, eq(returndatasize(), 800))
+    }
+    if (!ok) revert F1600CallFailed();
+}
+
+function _xorBlockResident(uint256[25] memory st, uint256 ptr) pure {
+    assembly ("memory-safe") {
+        function grev(w) -> v {
+            let a := and(w, 0xff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00)
+            v := or(shr(8, a), shl(8, xor(w, a)))
+            a := and(v, 0xffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000)
+            v := or(shr(16, a), shl(16, xor(v, a)))
+            a := and(v, 0xffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000)
+            v := or(shr(32, a), shl(32, xor(v, a)))
+        }
+        let v := grev(mload(ptr))
+        mstore(st, xor(mload(st), mul(shr(192, v), 0x01000000000000000100000000000000010000000000000001)))
+        mstore(
+            add(st, 32),
+            xor(
+                mload(add(st, 32)),
+                mul(and(shr(128, v), _M64_170), 0x01000000000000000100000000000000010000000000000001)
+            )
+        )
+        mstore(
+            add(st, 64),
+            xor(
+                mload(add(st, 64)),
+                mul(and(shr(64, v), _M64_170), 0x01000000000000000100000000000000010000000000000001)
+            )
+        )
+        mstore(
+            add(st, 96),
+            xor(mload(add(st, 96)), mul(and(v, _M64_170), 0x01000000000000000100000000000000010000000000000001))
+        )
+        v := grev(mload(add(ptr, 32)))
+        mstore(
+            add(st, 128),
+            xor(mload(add(st, 128)), mul(shr(192, v), 0x01000000000000000100000000000000010000000000000001))
+        )
+        mstore(
+            add(st, 160),
+            xor(
+                mload(add(st, 160)),
+                mul(and(shr(128, v), _M64_170), 0x01000000000000000100000000000000010000000000000001)
+            )
+        )
+        mstore(
+            add(st, 192),
+            xor(
+                mload(add(st, 192)),
+                mul(and(shr(64, v), _M64_170), 0x01000000000000000100000000000000010000000000000001)
+            )
+        )
+        mstore(
+            add(st, 224),
+            xor(mload(add(st, 224)), mul(and(v, _M64_170), 0x01000000000000000100000000000000010000000000000001))
+        )
+        v := grev(mload(add(ptr, 64)))
+        mstore(
+            add(st, 256),
+            xor(mload(add(st, 256)), mul(shr(192, v), 0x01000000000000000100000000000000010000000000000001))
+        )
+        mstore(
+            add(st, 288),
+            xor(
+                mload(add(st, 288)),
+                mul(and(shr(128, v), _M64_170), 0x01000000000000000100000000000000010000000000000001)
+            )
+        )
+        mstore(
+            add(st, 320),
+            xor(
+                mload(add(st, 320)),
+                mul(and(shr(64, v), _M64_170), 0x01000000000000000100000000000000010000000000000001)
+            )
+        )
+        mstore(
+            add(st, 352),
+            xor(mload(add(st, 352)), mul(and(v, _M64_170), 0x01000000000000000100000000000000010000000000000001))
+        )
+        v := grev(mload(add(ptr, 96)))
+        mstore(
+            add(st, 384),
+            xor(mload(add(st, 384)), mul(shr(192, v), 0x01000000000000000100000000000000010000000000000001))
+        )
+        mstore(
+            add(st, 416),
+            xor(
+                mload(add(st, 416)),
+                mul(and(shr(128, v), _M64_170), 0x01000000000000000100000000000000010000000000000001)
+            )
+        )
+        mstore(
+            add(st, 448),
+            xor(
+                mload(add(st, 448)),
+                mul(and(shr(64, v), _M64_170), 0x01000000000000000100000000000000010000000000000001)
+            )
+        )
+        mstore(
+            add(st, 480),
+            xor(mload(add(st, 480)), mul(and(v, _M64_170), 0x01000000000000000100000000000000010000000000000001))
+        )
+        v := grev(mload(add(ptr, 104)))
+        mstore(
+            add(st, 512),
+            xor(mload(add(st, 512)), mul(and(v, _M64_170), 0x01000000000000000100000000000000010000000000000001))
+        )
+    }
+}
+
+function _absorbCalldataSegmentResident(
+    uint256[25] memory st,
+    uint256 blockPtr,
+    uint256 filled,
+    uint256 src,
+    uint256 len,
+    address helper
+) view returns (uint256) {
+    unchecked {
+        uint256 offset = 0;
+        while (offset < len) {
+            uint256 take = _RATE_FAST - filled;
+            uint256 remaining = len - offset;
+            if (take > remaining) take = remaining;
+            assembly ("memory-safe") {
+                calldatacopy(add(blockPtr, filled), add(src, offset), take)
+            }
+            filled += take;
+            offset += take;
+            if (filled == _RATE_FAST) {
+                _xorBlockResident(st, blockPtr);
+                f1600Resident(st, helper);
+                _zeroRateBlock(blockPtr);
+                filled = 0;
+            }
+        }
+        return filled;
+    }
+}
+
+function _absorbSaltMessageCalldataResident(
+    uint256[25] memory st,
+    bytes calldata salt,
+    bytes calldata msgHash,
+    address helper
+) view {
+    if (salt.length == 40 && msgHash.length < 96) {
+        uint256 shortPtr = _allocRateBlock();
+        _zeroRateBlock(shortPtr);
+        uint256 msgLen = msgHash.length;
+        assembly ("memory-safe") {
+            calldatacopy(shortPtr, salt.offset, 40)
+            calldatacopy(add(shortPtr, 40), msgHash.offset, msgLen)
+            let filled := add(40, msgLen)
+            mstore8(add(shortPtr, filled), 0x1f)
+            mstore8(add(shortPtr, 135), xor(byte(0, mload(add(shortPtr, 135))), 0x80))
+        }
+        _xorBlockResident(st, shortPtr);
+        f1600Resident(st, helper);
+        return;
+    }
+
+    uint256 blockPtr = _allocRateBlock();
+    _zeroRateBlock(blockPtr);
+
+    uint256 saltOffset;
+    uint256 msgOffset;
+    assembly ("memory-safe") {
+        saltOffset := salt.offset
+        msgOffset := msgHash.offset
+    }
+
+    uint256 filled = _absorbCalldataSegmentResident(st, blockPtr, 0, saltOffset, salt.length, helper);
+    filled = _absorbCalldataSegmentResident(st, blockPtr, filled, msgOffset, msgHash.length, helper);
+
+    assembly ("memory-safe") {
+        mstore8(add(blockPtr, filled), 0x1f)
+        mstore8(add(blockPtr, 135), xor(byte(0, mload(add(blockPtr, 135))), 0x80))
+    }
+    _xorBlockResident(st, blockPtr);
+    f1600Resident(st, helper);
 }

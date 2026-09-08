@@ -94,6 +94,13 @@ contract ShakeSamplingTest is Test {
         (uint256 stateCount, uint256 stateNorm) = _sampleShakeStateNormPacked8(wide, count, state, norm);
         assertEq(stateCount, actualCount, "direct-state sample count");
         assertEq(stateNorm, actualNorm, "direct-state sample norm");
+        uint256 replication = 1 + (uint256(1) << 64) + (uint256(1) << 128) + (uint256(1) << 192);
+        for (uint256 i; i < 25; ++i) {
+            state[i] *= replication;
+        }
+        (stateCount, stateNorm) = _sampleShakeStateNormPacked8(wide, count, state, norm);
+        assertEq(stateCount, actualCount, "resident-state sample count");
+        assertEq(stateNorm, actualNorm, "resident-state sample norm");
         for (uint256 j; j < 136 && count < 512; j += 2) {
             uint256 t = (uint256(uint8(blockData[j])) << 8) | uint8(blockData[j + 1]);
             if (t >= 5 * Q) continue;

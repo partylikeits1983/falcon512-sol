@@ -44,6 +44,9 @@ jobs:
       - name: Unrolled butterfly generation
         run: python3 scripts/generate_ntt_loops.py
 
+      - name: Resident helper generation
+        run: python3 scripts/generate_resident_helper.py
+
       - name: Optimized verifier tests
         run: forge test -vv --match-contract Falcon512VerifierTest --match-test 'test_'
 
@@ -59,7 +62,7 @@ jobs:
         run: forge test -vv --match-test testFuzz_GeneratedSignaturesReachVerifier --fuzz-runs 1024
 
       - name: Independent arithmetic and sampling fuzzing
-        run: forge test -vv --match-contract 'PackedArithmeticTest|ShakeSamplingTest' --fuzz-runs 1024
+        run: forge test -vv --match-contract 'PackedArithmeticTest|ShakeSamplingTest|ResidentKeccakTest' --fuzz-runs 1024
 
       - name: Transaction gas regression
         run: python3 scripts/benchmark.py --lengths 0 16 95 512

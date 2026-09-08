@@ -1,14 +1,14 @@
 # Falcon512 Solidity Verifier
 
-**702,316 gas per verification transaction** for the fixed valid Falcon512
-signature with a 16-byte message. This includes **649,308 execution gas** plus
-53,008 gas for the transaction base and calldata. Execution gas is **38.1% lower**
+**695,970 gas per verification transaction** for the fixed valid Falcon512
+signature with a 16-byte message. This includes **642,962 execution gas** plus
+53,008 gas for the transaction base and calldata. Execution gas is **38.7% lower**
 than the original 1,048,550 gas.
 
 These figures measure `Falcon512Verifier.verifyPrepared` with a cold SHAKE
 helper. Inputs are prepared offchain; deployment is a separate, one-time cost.
 The measured 512-byte-message transaction also fits below one million gas,
-at **928,601 gas**. Costs for each tested message length are below.
+at **918,273 gas**. Costs for each tested message length are below.
 
 ## Gas
 
@@ -18,13 +18,13 @@ cold helper. Transaction gas includes the 21,000 base and calldata costs:
 
 | Message bytes | Execution gas | Total transaction gas |
 | ---: | ---: | ---: |
-| 0 | 652,449 | 705,485 |
-| 16 (fixed Rust vector) | 649,308 | 702,316 |
-| 95 | 694,462 | 749,094 |
-| 96 | 695,170 | 749,634 |
-| 232 | 781,312 | 837,952 |
-| 512 | 867,805 | 928,601 |
-| 1,024 | 996,932 | 1,066,196 |
+| 0 | 646,121 | 699,157 |
+| 16 (fixed Rust vector) | 642,962 | 695,970 |
+| 95 | 687,230 | 741,862 |
+| 96 | 688,068 | 742,532 |
+| 232 | 772,538 | 829,178 |
+| 512 | 857,477 | 918,273 |
+| 1,024 | 984,282 | 1,053,546 |
 
 These are deterministic vectors, not a worst-case bound. SHAKE rejection
 sampling changes the number of permutations, and longer messages need more
@@ -34,9 +34,9 @@ messages through 512 bytes; it is not a guarantee for every message/signature.**
 The 0-, 16-, 95-, and 512-byte cases also produce the same transaction gas under
 Osaka rules, checked in CI with `--hardfork osaka`.
 
-Verifier deployment: 4,632,518 gas; runtime: 21,371 bytes; initcode: 21,563 bytes
+Verifier deployment: 4,657,364 gas; runtime: 21,487 bytes; initcode: 21,679 bytes
 before constructor arguments. The separate, reusable SHAKE helper costs
-4,716,332 gas to deploy and has a 21,622-byte runtime.
+4,241,537 gas to deploy and has a 19,392-byte runtime.
 
 The verifier processes eight polynomial coefficients per EVM word, using
 32-bit Montgomery lanes and stage-specific bounds. Its assembly kernel fuses
@@ -45,13 +45,19 @@ into the final butterflies. Signature packing and hash sampling both use this
 layout directly, with no intermediate polynomial conversion. One packed
 multiplication sums eight signature squares, and hash sampling folds centering
 into modular reduction without a branch. Candidates are read directly from the
-SHAKE state. Full sampler blocks omit redundant output bounds checks; partial
-blocks retain output bounds. Groups of four accepted candidates share one
+SHAKE state, which keeps four copies of each lane between helper calls to
+avoid repeated representation conversions. Full sampler blocks omit redundant
+output bounds checks; partial blocks retain output bounds. Groups of four accepted candidates share one
 branch and offset update; mixed groups use individual checks. The final block
 stops once all 512 coefficients are consumed. The NTT word butterfly bodies
 are unrolled, while final normalization processes 16 pairs per iteration to
 control bytecode size.
-The runtime is 3,205 bytes below the 24,576-byte contract size limit. See [the optimization notes](OPTIMIZATION.md).
+The runtime is 3,089 bytes below the 24,576-byte contract size limit. See [the optimization notes](OPTIMIZATION.md).
+
+New deployments require `test/fixtures/f1600_resident.hex`; the constructor pins
+its code hash, `0xc5087c236ef4a48e463c4732a78010e18bb213a3c917965376b445b784cd5fcb`.
+The original helper remains a test reference. Generate/check the new wrapper
+with `scripts/generate_resident_helper.py`; its permutation body is unchanged.
 
 ## Provenance
 
@@ -59,7 +65,7 @@ Core verifier logic comes from ZKNOX/ETHFALCON and has been further gas optimize
 
 Contract and source names are now project-specific. Original attribution for the
 utility and arithmetic code is retained here: Copyright (C) 2026 - ZKNOX.
-The SHAKE glue and helper derive from Fireblocks' MIT-licensed implementation;
+The SHAKE glue and helper derive from [Fireblocks' MIT-licensed implementation](https://github.com/fireblocks-labs/evm-ml-dsa-verifier/tree/cca262b537a5ac2ee55efb427e5c61de0308e566);
 the source retains its Fireblocks notices. The original utility header stated:
 "This Code may be reused including this header, license and copyright notice."
 
@@ -91,11 +97,12 @@ cargo build -p falcon512-oracle
 forge build
 forge test
 forge test --gas-report
-forge test --match-contract 'PackedArithmeticTest|ShakeSamplingTest' --fuzz-runs 1024
+forge test --match-contract 'PackedArithmeticTest|ShakeSamplingTest|ResidentKeccakTest' --fuzz-runs 1024
 forge test --match-test 'testFuzz_' --match-contract Falcon512VerifierTest --fuzz-runs 64
 python3 scripts/benchmark.py
 python3 scripts/check_twiddles.py
 python3 scripts/generate_ntt_loops.py
+python3 scripts/generate_resident_helper.py
 ```
 
 Before moving to another optimization target, run the fresh-signature gate:
@@ -136,7 +143,7 @@ execution gas and real transactions submitted with a one-million gas limit.
 
 Requires Foundry (including Anvil and Cast for transaction benchmarks), Rust,
 Python 3.9+, `ffi = true`, and the checked-in Keccak-f[1600] helper runtime in
-`test/fixtures/f1600_170.hex`. The benchmark script starts and stops its own
+`test/fixtures/f1600_resident.hex`. The benchmark script starts and stops its own
 loopback-only Anvil node; it uses no external RPC or wallet.
 CI uses Foundry nightly; older formatters can produce different assembly
 formatting, so use a recent Foundry version for `forge fmt`.

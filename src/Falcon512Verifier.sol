@@ -14,7 +14,7 @@ import "./FalconShake.sol";
 /// - the decoded signature vector s2 compacted as 32 uint256 words,
 /// - the public key already transformed to compacted NTT form.
 contract Falcon512Verifier {
-    bytes32 internal constant F1600_CODEHASH = 0x4afb4435879cdf8e50474c7aab2bc3a679caed432550ad6dba64f509309a817b;
+    bytes32 internal constant F1600_CODEHASH = 0xc5087c236ef4a48e463c4732a78010e18bb213a3c917965376b445b784cd5fcb;
 
     address public immutable f1600Helper;
 

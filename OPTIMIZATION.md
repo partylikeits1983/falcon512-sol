@@ -22,8 +22,8 @@ Commit timestamps requested by the repository owner: first two commits use
 
 ## Result
 
-The fixed-vector cold-helper execution cost decreased from 1,048,550 to 649,308
-gas. The actual transaction consumes 702,316 gas. Full message-length and
+The fixed-vector cold-helper execution cost decreased from 1,048,550 to 642,962
+gas. The actual transaction consumes 695,970 gas. Full message-length and
 deployment measurements are in the README and can be reproduced with
 `python3 scripts/benchmark.py`. The complete table uses Shanghai rules.
 The 0-, 16-, 95-, and 512-byte transactions were also tested with Osaka rules on a
@@ -163,6 +163,30 @@ consumed profitable: it now skips both the batch threshold and fallback work.
 This was measured again with the new body, rather than assuming the earlier
 completion-check result still applied.
 
+## Resident replicated SHAKE lanes
+
+The permutation already represents each uint64 lane as four identical copies
+within an EVM word. Keeping that representation in the caller removes the
+helper's repeated entry multiplication and exit masking. Absorption replicates
+each message lane before XOR; sampling reads only the low uint64. Zero state,
+replicated XOR, and the existing permutation preserve the representation.
+
+`scripts/generate_resident_helper.py` extracts the unchanged straight-line
+permutation from the SHA-256-pinned original helper. It checks the extraction
+boundaries and absence of control flow or calldata access, then emits a new
+wrapper. Its 832-byte interface ignores a prefix word and consumes 25 replicated
+lanes; it returns all 25 replicated lanes. The caller passes the already
+allocated word preceding the state as the ignored prefix, without modifying it.
+The 800-byte clean-lane interface remains available for independent reference
+checks. Other input lengths revert.
+
+The constructor pins the new helper's code hash. Tests compare all 25 lanes
+in both interfaces against the original helper on 1,024 random states, check
+full replication of every output, and test malformed lengths. Sampler tests
+also exercise replicated input states. The resident permutation costs 40,454
+gas versus 41,373 for the original wrapper; full verification measurements
+include the changed absorption, masking, and call-data copying costs.
+
 ## Loop specialization
 
 Word-aligned butterfly bodies are unrolled. Final normalization uses two
@@ -172,10 +196,11 @@ The field operations, twiddle ordering, and bounds above remain unchanged.
 from the stage width and checks the checked-in assembly. Regenerate with
 `--write`, then run `forge fmt`; CI checks the generated sections.
 
-The measured runtime is 21,371 bytes, leaving 3,205 bytes below the deployment
+The measured runtime is 21,487 bytes, leaving 3,089 bytes below the deployment
 limit. This deliberately prioritizes per-verification gas over deployment gas:
-the verifier now costs 4,632,518 gas to deploy, plus the unchanged reusable
-helper's deployment. Both deployments were exercised on Shanghai and Osaka.
+the verifier now costs 4,657,364 gas to deploy, plus the reusable resident
+helper's 4,241,537 gas deployment. Both deployments were exercised on Shanghai
+and Osaka.
 
 ## Measured progression
 
@@ -197,6 +222,7 @@ helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 | Four-candidate batches in full blocks | 651,624 |
 | Batches in partial blocks with four remaining slots | 650,364 |
 | Stop the final batch loop at completion | 649,308 |
+| Keep replicated SHAKE lanes resident between calls | 642,962 |
 
 ## Validation
 
@@ -214,9 +240,9 @@ helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 - Zero, maximal and alternating polynomial coefficients, invalid uint16 lanes,
   malformed lengths, excessive norms, rejection thresholds, sampler completion
   within an unrolled group, and helper return-size/revert failures.
-- Solidity/Rust formatting, build and contract-size checks, a 650,000 execution
+- Solidity/Rust formatting, build and contract-size checks, a 645,000 execution
   gas ceiling on the fixed vector, and actual short-message transactions with
-  a 1,000,000 gas limit, including the 512-byte vector (928,601 transaction gas).
+  a 1,000,000 gas limit, including the 512-byte vector (918,273 transaction gas).
 
 ## Limits and further work
 
@@ -246,11 +272,14 @@ candidates include packed arithmetic for their norms and different Keccak
 permutation layouts. Bytecode tradeoffs should be measured together, including
 reductions in unrolling when needed.
 
-A packed-column Keccak prototype matched all 25 lanes of the existing helper
-on 64 random states, but was slower. The existing permutation costs 41,373 gas;
+A packed-column Keccak prototype matched all 25 lanes of the original helper
+on 64 random states, but was slower. The original wrapper costs 41,373 gas;
 the best prototype compilation measured 77,292 gas. The standard Solidity
 optimizer duplicated large expressions across memory stores. The prototype
-was not integrated; the existing helper remains in production.
+was not integrated. A subsequent raw-EVM packed-column implementation matched
+1,024 random states but still cost 69,034 gas per permutation, so it was also
+rejected. Production retains the original permutation body with the resident
+wrapper described above.
 
 Before moving between optimization targets, generate 1,024 fresh signatures
 with fuzzed key/signing seeds and run the prepared-mutation gate documented in

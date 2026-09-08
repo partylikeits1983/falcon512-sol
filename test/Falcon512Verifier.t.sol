@@ -57,7 +57,7 @@ contract Falcon512VerifierTest is Test {
         assertTrue(optimized.verifyPrepared(message, salt, s2, ntth));
         uint256 used = vm.snapshotGasLastCall("prepared_fixed_vector");
         emit log_named_uint("Prepared verification (cold helper)", used);
-        assertLt(used, 650_000, "fixed-vector execution gas regression");
+        assertLt(used, 645_000, "fixed-vector execution gas regression");
         bytes memory callData = abi.encodeCall(optimized.verifyPrepared, (message, salt, s2, ntth));
         uint256 intrinsic = 21_000;
         for (uint256 i; i < callData.length; ++i) {
@@ -335,7 +335,7 @@ contract Falcon512VerifierTest is Test {
         string[] memory cmds = new string[](3);
         cmds[0] = "awk";
         cmds[1] = "{print \"0x\"$0}";
-        cmds[2] = "test/fixtures/f1600_170.hex";
+        cmds[2] = "test/fixtures/f1600_resident.hex";
         bytes memory runtime = vm.ffi(cmds);
         bytes memory initCode = abi.encodePacked(hex"61", uint16(runtime.length), hex"8061000d6000396000f3", runtime);
 
@@ -343,7 +343,7 @@ contract Falcon512VerifierTest is Test {
             helper := create(0, add(initCode, 32), mload(initCode))
         }
         require(helper != address(0), "f1600 helper create failed");
-        require(helper.code.length == 21622, "wrong f1600 helper size");
+        require(helper.code.length == 19392, "wrong f1600 helper size");
     }
 
     function _prepare(bytes memory signature, bytes memory publicKey)
