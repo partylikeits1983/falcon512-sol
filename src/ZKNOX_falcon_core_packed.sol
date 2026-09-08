@@ -19,6 +19,8 @@ function falcon_product_packed_words_calldata(uint256[] calldata s2, uint256[] c
     return _nttInvPacked(_vecMulPacked(_nttFwPacked(_packFromCompactCalldata(s2)), _packFromCompactCalldata(ntth)));
 }
 
+/// @dev A nonzero flag also signals early rejection when the s2 norm alone
+/// reaches the verifier's bound. Callers must check it before using product.
 function falcon_product_packed_words_calldata_with_s2_norm(uint256[] calldata s2, uint256[] calldata ntth)
     pure
     returns (uint256[] memory product, uint256 norm, uint256 outOfRange)

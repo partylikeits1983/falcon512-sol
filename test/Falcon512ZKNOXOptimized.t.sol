@@ -57,6 +57,13 @@ contract Falcon512ZKNOXOptimizedTest is Test {
         assertTrue(optimized.verifyPrepared(message, salt, s2, ntth));
         uint256 used = vm.snapshotGasLastCall("prepared_fixed_vector");
         emit log_named_uint("Prepared verification (cold helper)", used);
+        assertLt(used, 880_000, "fixed-vector execution gas regression");
+        bytes memory callData = abi.encodeCall(optimized.verifyPrepared, (message, salt, s2, ntth));
+        uint256 intrinsic = 21_000;
+        for (uint256 i; i < callData.length; ++i) {
+            intrinsic += callData[i] == 0 ? 4 : 16;
+        }
+        assertLt(used + intrinsic, 1_000_000, "fixed-vector transaction gas regression");
     }
 
     function testFuzz_ValidPrepared(bytes32 seed, uint16 messageLength) public {
@@ -85,7 +92,48 @@ contract Falcon512ZKNOXOptimizedTest is Test {
                 hashToPointNISTFast(salt, message, optimized.f1600Helper()),
                 "calldata/memory absorption"
             );
+            string[] memory command = new string[](3);
+            command[0] = "python3";
+            command[1] = "test/oracles/hash_to_point.py";
+            command[2] = vm.toString(bytes.concat(salt, message));
+            bytes memory expected = vm.ffi(command);
+            assertEq(expected.length, 1024);
+            uint256[] memory actual = harness.hash(salt, message, optimized.f1600Helper());
+            for (uint256 i; i < 512; ++i) {
+                assertEq(actual[i], (uint256(uint8(expected[2 * i])) << 8) | uint8(expected[2 * i + 1]));
+            }
         }
+    }
+
+    function test_RejectMalformedPreparedInputs() public view {
+        bytes memory salt = new bytes(40);
+        uint256[] memory s2 = new uint256[](32);
+        uint256[] memory key = new uint256[](32);
+        assertFalse(optimized.verifyPrepared("", new bytes(39), s2, key));
+        assertFalse(optimized.verifyPrepared("", new bytes(41), s2, key));
+        assertFalse(optimized.verifyPrepared("", salt, new uint256[](31), key));
+        assertFalse(optimized.verifyPrepared("", salt, new uint256[](33), key));
+        assertFalse(optimized.verifyPrepared("", salt, s2, new uint256[](31)));
+        assertFalse(optimized.verifyPrepared("", salt, s2, new uint256[](33)));
+        s2[31] = Q << 240;
+        assertFalse(optimized.verifyPrepared("", salt, s2, key));
+        s2[31] = 6144;
+        assertFalse(optimized.verifyPrepared("", salt, s2, key));
+        s2[31] = 0;
+        assertFalse(optimized.verifyPrepared("", salt, s2, key));
+    }
+
+    function test_HelperCodeHashAndFailedCalls() public {
+        vm.expectRevert(Falcon512ZKNOXOptimized.BadHelper.selector);
+        new Falcon512ZKNOXOptimized(address(0));
+        // A helper cannot normally change code; simulate failure to check
+        // the STATICCALL success and return-size checks fail closed.
+        vm.etch(optimized.f1600Helper(), hex"00");
+        vm.expectRevert(bytes4(keccak256("F1600CallFailed()")));
+        optimized.verifyPrepared("", new bytes(40), new uint256[](32), new uint256[](32));
+        vm.etch(optimized.f1600Helper(), hex"60006000fd");
+        vm.expectRevert(bytes4(keccak256("F1600CallFailed()")));
+        optimized.verifyPrepared("", new bytes(40), new uint256[](32), new uint256[](32));
     }
 
     function test_UpstreamHashToPointVector() public view {

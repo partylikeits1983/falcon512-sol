@@ -25,6 +25,24 @@ contract ProductHarness {
 contract PackedArithmeticTest is Test {
     uint256 private constant Q = 12289;
 
+    function test_GasPolynomialStages() public {
+        uint256[] memory compact = new uint256[](32);
+        uint256 before = gasleft();
+        uint256[] memory a = _packFromCompact(compact);
+        emit log_named_uint("Pack", before - gasleft());
+        before = gasleft();
+        a = _nttFwPacked(a);
+        emit log_named_uint("Forward NTT", before - gasleft());
+        uint256[] memory key = _packFromCompact(compact);
+        before = gasleft();
+        a = _vecMulPacked(a, key);
+        emit log_named_uint("Memory pointwise product", before - gasleft());
+        before = gasleft();
+        a = _nttInvPacked(a);
+        emit log_named_uint("Inverse NTT", before - gasleft());
+        assertEq(_unpackTo512(a)[0], 0);
+    }
+
     function testFuzz_CalldataProductAndNorm(bytes32 seed) public {
         uint256[] memory a = new uint256[](512);
         uint256[] memory key = new uint256[](512);

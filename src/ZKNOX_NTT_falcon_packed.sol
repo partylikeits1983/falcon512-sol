@@ -89,6 +89,23 @@ function _packFromCompactCalldataWithNorm(uint256[] calldata c)
         let dst := add(A, 32)
         for { let i := 0 } lt(i, 32) { i := add(i, 1) } {
             let ci := calldataload(add(src, shl(5, i)))
+            // Check all sixteen uint16 lanes at once. Clear each guard bit
+            // before adding 2^15-q, so no addition carries between lanes.
+            // An original guard bit or a newly set one means coefficient >= q.
+            outOfRange :=
+                or(
+                    outOfRange,
+                    and(
+                        or(
+                            ci,
+                            add(
+                                and(ci, 0x7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff),
+                                0x4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff
+                            )
+                        ),
+                        0x8000800080008000800080008000800080008000800080008000800080008000
+                    )
+                )
             let base := add(dst, shl(7, i))
             for { let k := 0 } lt(k, 4) { k := add(k, 1) } {
                 let s := shl(6, k)
@@ -100,11 +117,6 @@ function _packFromCompactCalldataWithNorm(uint256[] calldata c)
                 let c3 := and(shr(48, v), 0xffff)
 
                 mstore(add(base, shl(5, k)), or(or(c0, shl(64, c1)), or(shl(128, c2), shl(192, c3))))
-
-                outOfRange := or(outOfRange, iszero(lt(c0, q)))
-                outOfRange := or(outOfRange, iszero(lt(c1, q)))
-                outOfRange := or(outOfRange, iszero(lt(c2, q)))
-                outOfRange := or(outOfRange, iszero(lt(c3, q)))
 
                 if gt(c0, qs1) { c0 := sub(q, c0) }
                 if gt(c1, qs1) { c1 := sub(q, c1) }
@@ -136,42 +148,11 @@ function _unpackTo512(uint256[] memory A) pure returns (uint256[] memory b) {
 
 /// @notice Forward NTT, in place on 128 packed words.
 function _nttFwPacked(uint256[] memory A) pure returns (uint256[] memory) {
-    uint256[32] memory psirev = [
-        uint256(0x16e40c7b04bc29930e25261022510dd61fdb166802d22ae80fcb1be72a3a0001),
-        0x5471c8f1970230116c4139f1e1216602549244324622dce2c4c25c00a4f1d2c,
-        0x270b2bdb222012c50e8023c2254612ee2ad313de0bc623802ceb2c462b6f090f,
-        0x2d2b1dfe28c42f752531299e1f622b68093e24161ce1246e2c191f212fb00c13,
-        0x27d81c1d0cd40b410ca902d9232807dd06a00594014e097a19861218112404ec,
-        0x18ea1ce720a525561a5b00910d830e351f7a260d2e9e0d36218629221bc62193,
-        0x2624056522011fb01c841b2e10b629780220169f0153265d000903fe01e024e7,
-        0x1b030b1500821eff095c116423210f6d1c360895007609ac1687033b215d2c48,
-        0x2bec0b2b26501394164224a112fd01620ec22108030501862bd61c1401ba0961,
-        0x2de0139b0e78258b1fd2126a00f206012a61214e2407001b1c2506601cec03f9,
-        0x268b186a277625fb0bab17860e3e267c2c96213d29ba1c911f4513e0139303ea,
-        0x77805622e4e1f10094d1abd200101ed0cb02b4a149d04901ddc2e6d085f2bd8,
-        0x2910067f1dd32a6f0a9014ab134a0e3411552ffe0c4d2f611cca2f900f4b0876,
-        0x5cc1ce22525144b0a550fd527001c4f1114087e1ec324e2233a0fd906990d24,
-        0x2031273824bd2b800c72151f27b3065e0db614d40b3126bf2468207725832352,
-        0x1dc0dcb13290f910608277f01a41a4a00f30bc8029f244923c11bba22b926a2,
-        0x118d237f27f814f9150728ea015e05e818cb29d22a30263d05cb171b04ef0031,
-        0x129207422e57230e0b6d015b2154284a02d300ae069d24400a5f199a1915254f,
-        0x28f424bf27fe07a2267217fe02400f7b22380d6a00da0b5c28ce093910130bd6,
-        0x50d1d801d5b15352e3c171401a20ebc14d5281216f408e9009c253220800f97,
-        0x20302171048717662c4d2b872a850145249a214f0fed2051028c168617d30127,
-        0x14b1181a0f7405502b511bc126061817063a28571c0f17490a842f5910ca0d01,
-        0x2cbe1850220f1090052723b302c50fce081e045810e207a601b9039a2bdf2012,
-        0x1b780efa18e21eb01a932413292e23ce263a247d169629e32fc10e4802ab099b,
-        0x2800133005292f41228c12ac125a13c10313226703f21aa523ca1fb824991b88,
-        0x27b2009724ea0f75171226382e52062b0c662fcd2533052b22f9185a190f02a5,
-        0x10742c320d6e24e52bb0008e19d00d9518892c8c1c7007a42c160dcc2f102fc7,
-        0x1df117bd0cbf21f117b40e1220112e5c2da408fe01f81f8c16fe12ae1a27242c,
-        0x2be71e4915450f14258604a6211717e621342f6e1ab11161128d1a601d4c1e8e,
-        0x2c0717252bf022471a3b07b526d92b0314c3201613341f1d2df70879234313d7,
-        0x294101901808135421c61ada191b17f82fc90c7f14561a6807c306a60ded028e,
-        0x2b1b03cd1ac62ab207820f27206328102e83013c206d01d417cd0e7e154614db
-    ];
+    bytes memory psirev =
+        hex"00012a3a1be70fcb2ae802d216681fdb0dd6225126100e25299304bc0c7b16e41d2c0a4f25c02c4c2dce24622443254916601e12139f16c4230119701c8f0547090f2b6f2c462ceb23800bc613de2ad312ee254623c20e8012c522202bdb270b0c132fb01f212c19246e1ce12416093e2b681f62299e25312f7528c41dfe2d2b04ec112412181986097a014e059406a007dd232802d90ca90b410cd41c1d27d821931bc6292221860d362e9e260d1f7a0e350d8300911a5b255620a51ce718ea24e701e003fe0009265d0153169f0220297810b61b2e1c841fb02201056526242c48215d033b168709ac007608951c360f6d23211164095c1eff00820b151b03096101ba1c142bd60186030521080ec2016212fd24a11642139426500b2b2bec03f91cec06601c25001b2407214e2a61060100f2126a1fd2258b0e78139b2de003ea139313e01f451c9129ba213d2c96267c0e3e17860bab25fb2776186a268b2bd8085f2e6d1ddc0490149d2b4a0cb001ed20011abd094d1f102e4e0562077808760f4b2f901cca2f610c4d2ffe11550e34134a14ab0a902a6f1dd3067f29100d2406990fd9233a24e21ec3087e11141c4f27000fd50a55144b25251ce205cc235225832077246826bf0b3114d40db6065e27b3151f0c722b8024bd2738203126a222b91bba23c12449029f0bc800f31a4a01a4277f06080f9113290dcb01dc003104ef171b05cb263d2a3029d218cb05e8015e28ea150714f927f8237f118d254f1915199a0a5f2440069d00ae02d3284a2154015b0b6d230e2e57074212920bd61013093928ce0b5c00da0d6a22380f7b024017fe267207a227fe24bf28f40f9720802532009c08e916f4281214d50ebc01a217142e3c15351d5b1d80050d012717d31686028c20510fed214f249a01452a852b872c4d17660487217120300d0110ca2f590a8417491c0f2857063a181726061bc12b5105500f74181a14b120122bdf039a01b907a610e20458081e0fce02c523b305271090220f18502cbe099b02ab0e482fc129e31696247d263a23ce292e24131a931eb018e20efa1b781b8824991fb823ca1aa503f22267031313c1125a12ac228c2f4105291330280002a5190f185a22f9052b25332fcd0c66062b2e52263817120f7524ea009727b22fc72f100dcc2c1607a41c702c8c18890d9519d0008e2bb024e50d6e2c321074242c1a2712ae16fe1f8c01f808fe2da42e5c20110e1217b421f10cbf17bd1df11e8e1d4c1a60128d11611ab12f6e213417e6211704a625860f1415451e492be713d7234308792df71f1d1334201614c32b0326d907b51a3b22472bf017252c07028e0ded06a607c31a6814560c7f2fc917f8191b1ada21c6135418080190294114db15460e7e17cd01d4206d013c2e83281020630f2707822ab21ac603cd2b1b";
 
     assembly ("memory-safe") {
+        psirev := add(psirev, 32)
         let base := add(A, 32)
 
         // ---- layers t = 256, 128, 64, 32, 16, 8, 4  (twds = t/4 whole words)
@@ -180,7 +161,7 @@ function _nttFwPacked(uint256[] memory A) pure returns (uint256[] memory) {
             let step := shl(5, twds) // twds words, in bytes
             for { let i := 0 } lt(i, m) { i := add(i, 1) } {
                 let mi := add(m, i)
-                let S := and(shr(shl(4, and(mi, 0xf)), mload(add(psirev, shl(5, shr(4, mi))))), 0xffff)
+                let S := shr(240, mload(add(psirev, shl(1, mi))))
                 let p := add(base, shl(1, mul(i, step))) // word i*2*twds
                 let pend := add(p, step)
                 for {} lt(p, pend) { p := add(p, 32) } {
@@ -201,16 +182,16 @@ function _nttFwPacked(uint256[] memory A) pure returns (uint256[] memory) {
             let W := mload(p)
             {
                 let mi := add(128, w)
-                let S := and(shr(shl(4, and(mi, 0xf)), mload(add(psirev, shl(5, shr(4, mi))))), 0xffff)
+                let S := shr(240, mload(add(psirev, shl(1, mi))))
                 let U := and(W, _L01)
                 let x := mul(and(shr(128, W), _L01), S)
                 let V := sub(x, mul(and(shr(40, mul(x, 89471204)), _MASK24L), 12289))
                 W := or(and(add(U, V), _L01), shl(128, and(sub(add(U, _BIG4Q), V), _L01)))
             }
             {
-                let twiddles := shr(shl(5, and(w, 7)), mload(add(psirev, add(512, shl(5, shr(3, w))))))
-                let Sa := and(twiddles, 0xffff)
-                let Sb := and(shr(16, twiddles), 0xffff)
+                let twiddles := shr(224, mload(add(psirev, add(512, shl(2, w)))))
+                let Sa := shr(16, twiddles)
+                let Sb := and(twiddles, 0xffff)
                 let Ua := and(W, _L0)
                 let xa := mul(and(shr(64, W), _L0), Sa)
                 let Va := mod(xa, 12289)
@@ -307,42 +288,11 @@ function _vecMulCompactCalldataInPlace(uint256[] memory A, uint256[] calldata ke
 ///      multiplying by floor(2^40/q) stays below 2^64. Thus packed Barrett
 ///      reduction remains lane-independent and yields a residue < 2q.
 function _nttInvPacked(uint256[] memory A) pure returns (uint256[] memory) {
-    uint256[32] memory psirev = [
-        0x222b0db009f121dc066e2b452386191d05192d2f19991026141a203605c70001,
-        0x12d525b20a4103b502330b9f0bbe0ab819a111ef1c62193d0d00169113722aba,
-        0x23ee005110e003e80b9313200beb26c30499109f06630ad0008c073d120302d6,
-        0x26f2049203bb03160c81243b1c23052e1d130abb0c3f21811d3c0de1042608f6,
-        0x3b90ea42cc6197a26552f8b276c13cb20940ce01e9d26a511022f7f24ec14fe,
-        0xb1a2e212c032ff809a42eae19622de106891f4b14d3137d10510e002a9c09dd,
-        0xe6e143b06df0e7b22cb016309f4108721cc227e2f7015a60aab0f5c131a1717,
-        0x2b151edd1de9167b26872eb32a6d296128240cd92d28235824c0232d13e40829,
-        0x95f0d4814470c400bb82d6224392f0e15b72e5d088229f920701cd822362e25,
-        0xcaf0a7e0f8a0b99094224d01b2d224b29a3084e1ae2238f04810b4408c90fd0,
-        0x22dd296820280cc70b1f113e27831eed13b20901202c25ac1bb60adc131f2a35,
-        0x278b20b60071133700a023b400031eac21cd1cb71b5625710592122e298206f1,
-        0x42927a2019412252b711b6404b723512e141000154426b410f101b32a9f2889,
-        0x2c171c6e1c2110bc137006470ec4036b098521c3187b24560a06088b17970976,
-        0x2c08131529a113dc2fe60bfa0eb305a02a002f0f1d97102f0a7621891c660221,
-        0x26a02e4713ed042b2e7b2cfc0ef9213f2e9f1d040b6019bf1c6d09b124d60415,
-        0x1b261abb218318342e2d0f942ec5017e07f10f9e20da287f054f153b2c3404e6,
-        0x2d732214295b283e15991bab23820038180916e615270e3b1cad17f92e7106c0,
-        0x1c2a0cbe2788020a10e41ccd0feb1b3e04fe0928284c15c60dba041118dc03fa,
-        0x117312b515a11d741ea0155000930ecd181b0eea2b5b0a7b20ed1abc11b8041a,
-        0xbd515da1d53190310752e092703025d01a50ff021ef184d0e10234218441210,
-        0x3a00f1223503eb285d139103751778226c16312f7304510b1c229303cf1f8d,
-        0x2d5c16f217a70d082ad60ace0034239b29d601af09c918ef208c0b172f6a084f,
-        0x14790b6810490c37155c2c0f0d9a2cee1c401da71d550d7500c02ad81cd10801,
-        0x26662d5621b90040061e196b0b8409c70c3306d30bee156e1151171f21071489,
-        0xfef04222c672e48285b1f1f2ba927e320332d3c0c4e2ada1f710df217b10343,
-        0x23001f3700a8257d18b813f207aa29c717ea09fb144004b02ab1208d17e71b50,
-        0x2eda182e197b2d750fb020140eb20b672ebc057c047a03b4189b2b7a0e900fd1,
-        0x206a0f810acf2f652718190d07ef1b2c21452e5f18ed01c51acc12a612812af4,
-        0x242b1fee26c8073324a52f2722970dc920862dc11803098f285f08030b42070d,
-        0xab216ec166725a20bc129642f532d2e07b70ead2ea624940cf301aa28bf1d6f,
-        0x2fd02b1218e62a3609c405d1062f17362a192ea307171afa1b0808090c821e74
-    ];
+    bytes memory psirev =
+        hex"000105c72036141a102619992d2f0519191d23862b45066e21dc09f10db0222b2aba137216910d00193d1c6211ef19a10ab80bbe0b9f023303b50a4125b212d502d61203073d008c0ad00663109f049926c30beb13200b9303e810e0005123ee08f604260de11d3c21810c3f0abb1d13052e1c23243b0c81031603bb049226f214fe24ec2f7f110226a51e9d0ce0209413cb276c2f8b2655197a2cc60ea403b909dd2a9c0e001051137d14d31f4b06892de119622eae09a42ff82c032e210b1a1717131a0f5c0aab15a62f70227e21cc108709f4016322cb0e7b06df143b0e6e082913e4232d24c023582d280cd9282429612a6d2eb32687167b1de91edd2b152e2522361cd8207029f908822e5d15b72f0e24392d620bb80c4014470d48095f0fd008c90b440481238f1ae2084e29a3224b1b2d24d009420b990f8a0a7e0caf2a35131f0adc1bb625ac202c090113b21eed2783113e0b1f0cc72028296822dd06f12982122e059225711b561cb721cd1eac000323b400a01337007120b6278b28892a9f01b310f126b4154410002e14235104b71b642b711225019427a2042909761797088b0a062456187b21c30985036b0ec40647137010bc1c211c6e2c1702211c6621890a76102f1d972f0f2a0005a00eb30bfa2fe613dc29a113152c08041524d609b11c6d19bf0b601d042e9f213f0ef92cfc2e7b042b13ed2e4726a004e62c34153b054f287f20da0f9e07f1017e2ec50f942e2d183421831abb1b2606c02e7117f91cad0e3b152716e61809003823821bab1599283e295b22142d7303fa18dc04110dba15c6284c092804fe1b3e0feb1ccd10e4020a27880cbe1c2a041a11b81abc20ed0a7b2b5b0eea181b0ecd009315501ea01d7415a112b511731210184423420e10184d21ef0ff001a5025d27032e09107519031d5315da0bd51f8d03cf22930b1c04512f731631226c177803751391285d03eb223500f1003a084f2f6a0b17208c18ef09c901af29d6239b00340ace2ad60d0817a716f22d5c08011cd12ad800c00d751d551da71c402cee0d9a2c0f155c0c3710490b68147914892107171f1151156e0bee06d30c3309c70b84196b061e004021b92d562666034317b10df21f712ada0c4e2d3c203327e32ba91f1f285b2e482c6704220fef1b5017e7208d2ab104b0144009fb17ea29c707aa13f218b8257d00a81f3723000fd10e902b7a189b03b4047a057c2ebc0b670eb220140fb02d75197b182e2eda2af4128112a61acc01c518ed2e5f21451b2c07ef190d27182f650acf0f81206a070d0b420803285f098f18032dc120860dc922972f2724a5073326c81fee242b1d6f28bf01aa0cf324942ea60ead07b72d2e2f5329640bc125a2166716ec0ab21e740c8208091b081afa07172ea32a191736062f05d109c42a3618e62b122fd0";
 
     assembly ("memory-safe") {
+        psirev := add(psirev, 32)
         let base := add(A, 32)
 
         // Fuse the two in-word inverse stages.
@@ -355,9 +305,9 @@ function _nttInvPacked(uint256[] memory A) pure returns (uint256[] memory) {
                 let l2 := and(shr(128, W), _LANE)
                 let l3 := shr(192, W)
 
-                let twiddles := shr(shl(5, and(w, 7)), mload(add(psirev, add(512, shl(5, shr(3, w))))))
-                let Sa := and(twiddles, 0xffff)
-                let Sb := and(shr(16, twiddles), 0xffff)
+                let twiddles := shr(224, mload(add(psirev, add(512, shl(2, w)))))
+                let Sa := shr(16, twiddles)
+                let Sb := and(twiddles, 0xffff)
 
                 let s0 := add(l0, l1)
                 let d0 := mul(sub(add(l0, 49156), l1), Sa)
@@ -371,7 +321,7 @@ function _nttInvPacked(uint256[] memory A) pure returns (uint256[] memory) {
             }
             {
                 let mi := add(128, w)
-                let S := and(shr(shl(4, and(mi, 0xf)), mload(add(psirev, shl(5, shr(4, mi))))), 0xffff)
+                let S := shr(240, mload(add(psirev, shl(1, mi))))
                 let U := and(W, _L01)
                 let V := and(shr(128, W), _L01)
                 let s := add(U, V)
@@ -390,7 +340,7 @@ function _nttInvPacked(uint256[] memory A) pure returns (uint256[] memory) {
             let g := base
             for { let i := 0 } lt(i, h) { i := add(i, 1) } {
                 let hi := add(h, i)
-                let S := and(shr(shl(4, and(hi, 0xf)), mload(add(psirev, shl(5, shr(4, hi))))), 0xffff)
+                let S := shr(240, mload(add(psirev, shl(1, hi))))
                 let p := g
                 let pend := add(p, step)
                 for {} lt(p, pend) { p := add(p, 32) } {

@@ -73,18 +73,21 @@ function _xorBlockFast170(uint256[25] memory st, uint256 ptr) pure {
 function _squeezeBlockFast170(uint256[25] memory st, uint256 outPtr) pure {
     assembly ("memory-safe") {
         function grev(w) -> v {
-            v := or(
-                and(shl(8, w), 0xff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00),
-                and(shr(8, w), 0x00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff)
-            )
-            v := or(
-                and(shl(16, v), 0xffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000),
-                and(shr(16, v), 0x0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff)
-            )
-            v := or(
-                and(shl(32, v), 0xffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000),
-                and(shr(32, v), 0x00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff)
-            )
+            v :=
+                or(
+                    and(shl(8, w), 0xff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00),
+                    and(shr(8, w), 0x00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff)
+                )
+            v :=
+                or(
+                    and(shl(16, v), 0xffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000),
+                    and(shr(16, v), 0x0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff)
+                )
+            v :=
+                or(
+                    and(shl(32, v), 0xffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000),
+                    and(shr(32, v), 0x00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff)
+                )
         }
         mstore(
             outPtr,
@@ -297,27 +300,55 @@ function _sampleShakeBlockNormPacked(uint256[] memory product, uint256 count, ui
 {
     assembly ("memory-safe") {
         let productBase := add(product, 32)
-        let productPtr := add(productBase, shl(5, shr(2, count)))
-        let productEnd := add(productBase, 4096)
-        let laneShift := shl(6, and(count, 3))
-
-        for { let j := 0 } and(lt(j, _RATE_FAST), lt(productPtr, productEnd)) { j := add(j, 2) } {
-            let t := shr(240, mload(add(outPtr, j)))
-            if lt(t, kq) {
-                let productCoeff := mod(and(shr(laneShift, mload(productPtr)), _M64_170), q)
-                let s1i := addmod(mod(t, q), sub(q, productCoeff), q)
-                if gt(s1i, qs1) { s1i := sub(q, s1i) }
-                norm := add(norm, mul(s1i, s1i))
-
-                laneShift := add(laneShift, 64)
-                if eq(laneShift, 256) {
-                    productPtr := add(productPtr, 32)
-                    laneShift := 0
+        // Coefficients are little-endian 64-bit lanes in big-endian words.
+        // XOR maps sequential coefficient offsets to their memory positions.
+        let offset := shl(3, count)
+        // Four candidates per iteration; every acceptance checks the output
+        // bound, including completion in the middle of this unrolled group.
+        // Product lanes are < 2q, so one MOD reduces both inputs/difference.
+        for { let j := 0 } lt(j, _RATE_FAST) { j := add(j, 8) } {
+            {
+                let t := shr(240, mload(add(outPtr, j)))
+                if and(lt(t, kq), lt(offset, 4096)) {
+                    let coefficient := shr(192, mload(add(productBase, xor(offset, 24))))
+                    let s1i := mod(sub(add(t, 24578), coefficient), q)
+                    if gt(s1i, qs1) { s1i := sub(q, s1i) }
+                    norm := add(norm, mul(s1i, s1i))
+                    offset := add(offset, 8)
+                }
+            }
+            {
+                let t := shr(240, mload(add(outPtr, add(j, 2))))
+                if and(lt(t, kq), lt(offset, 4096)) {
+                    let coefficient := shr(192, mload(add(productBase, xor(offset, 24))))
+                    let s1i := mod(sub(add(t, 24578), coefficient), q)
+                    if gt(s1i, qs1) { s1i := sub(q, s1i) }
+                    norm := add(norm, mul(s1i, s1i))
+                    offset := add(offset, 8)
+                }
+            }
+            {
+                let t := shr(240, mload(add(outPtr, add(j, 4))))
+                if and(lt(t, kq), lt(offset, 4096)) {
+                    let coefficient := shr(192, mload(add(productBase, xor(offset, 24))))
+                    let s1i := mod(sub(add(t, 24578), coefficient), q)
+                    if gt(s1i, qs1) { s1i := sub(q, s1i) }
+                    norm := add(norm, mul(s1i, s1i))
+                    offset := add(offset, 8)
+                }
+            }
+            {
+                let t := shr(240, mload(add(outPtr, add(j, 6))))
+                if and(lt(t, kq), lt(offset, 4096)) {
+                    let coefficient := shr(192, mload(add(productBase, xor(offset, 24))))
+                    let s1i := mod(sub(add(t, 24578), coefficient), q)
+                    if gt(s1i, qs1) { s1i := sub(q, s1i) }
+                    norm := add(norm, mul(s1i, s1i))
+                    offset := add(offset, 8)
                 }
             }
         }
-
-        nextCount := add(shr(3, sub(productPtr, productBase)), shr(6, laneShift))
+        nextCount := shr(3, offset)
         nextNorm := norm
     }
 }
@@ -456,6 +487,7 @@ function verifyWithHashToPointNISTFastCalldataPackedProduct(
         while (count < n) {
             _squeezeBlockFast170(st, outPtr);
             (count, norm) = _sampleShakeBlockNormPacked(product, count, outPtr, norm);
+            if (norm >= sigBound) return false;
             if (count == n) break;
             f1600Fast170(st, helper);
         }
