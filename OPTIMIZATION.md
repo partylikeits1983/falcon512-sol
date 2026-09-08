@@ -25,8 +25,9 @@ Commit timestamps requested by the repository owner: first two commits use
 The fixed-vector cold-helper execution cost decreased from 1,048,550 to 859,391
 gas. The actual transaction consumes 912,399 gas. Full message-length and
 deployment measurements are in the README and can be reproduced with
-`python3 scripts/benchmark.py`. Measurements use Shanghai rules; the installed
-Anvil does not support an Osaka benchmark.
+`python3 scripts/benchmark.py`. The complete table uses Shanghai rules.
+The 0-, 16-, and 95-byte transactions were also tested with Osaka rules on a
+newer Anvil and have identical gas costs; both forks are covered in CI.
 
 The implementation preserves the prepared-input ABI and arithmetic semantics,
 including its strict norm threshold and reduction of uint16 key residues.

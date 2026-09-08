@@ -92,20 +92,19 @@ function _packFromCompactCalldataWithNorm(uint256[] calldata c)
             // Check all sixteen uint16 lanes at once. Clear each guard bit
             // before adding 2^15-q, so no addition carries between lanes.
             // An original guard bit or a newly set one means coefficient >= q.
-            outOfRange :=
-                or(
-                    outOfRange,
-                    and(
-                        or(
-                            ci,
-                            add(
-                                and(ci, 0x7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff),
-                                0x4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff
-                            )
-                        ),
-                        0x8000800080008000800080008000800080008000800080008000800080008000
-                    )
+            outOfRange := or(
+                outOfRange,
+                and(
+                    or(
+                        ci,
+                        add(
+                            and(ci, 0x7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff7fff),
+                            0x4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff4fff
+                        )
+                    ),
+                    0x8000800080008000800080008000800080008000800080008000800080008000
                 )
+            )
             let base := add(dst, shl(7, i))
             for { let k := 0 } lt(k, 4) { k := add(k, 1) } {
                 let s := shl(6, k)
@@ -316,8 +315,10 @@ function _nttInvPacked(uint256[] memory A) pure returns (uint256[] memory) {
                 let d1 := mul(sub(add(l2, 49156), l3), Sb)
                 d1 := mod(d1, 12289)
 
-                W :=
-                    or(or(and(s0, _LANE), shl(64, and(d0, _LANE))), or(shl(128, and(s1, _LANE)), shl(192, and(d1, _LANE))))
+                W := or(
+                    or(and(s0, _LANE), shl(64, and(d0, _LANE))),
+                    or(shl(128, and(s1, _LANE)), shl(192, and(d1, _LANE)))
+                )
             }
             {
                 let mi := add(128, w)

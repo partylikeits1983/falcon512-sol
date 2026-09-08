@@ -25,7 +25,10 @@ sampling changes the number of permutations, and longer messages need more
 absorption blocks. **The sub-million target is met for the tested short
 messages; it is not a guarantee for every message/signature.**
 
-Verifier deployment: 2,078,631 gas; runtime: 9,431 bytes; initcode: 9,623 bytes
+The 0-, 16-, and 95-byte cases also produce the same transaction gas under
+Osaka rules, checked in CI with `--hardfork osaka`.
+
+Verifier deployment: 2,078,619 gas; runtime: 9,431 bytes; initcode: 9,623 bytes
 before constructor arguments. The separate, reusable SHAKE helper costs
 4,716,332 gas to deploy and has a 21,622-byte runtime.
 
@@ -76,5 +79,7 @@ Requires Foundry (including Anvil and Cast for transaction benchmarks), Rust,
 Python 3.9+, `ffi = true`, and the checked-in Keccak-f[1600] helper runtime in
 `test/fixtures/f1600_170.hex`. The benchmark script starts and stops its own
 loopback-only Anvil node; it uses no external RPC or wallet.
+CI uses Foundry nightly; older formatters can produce different assembly
+formatting, so use a recent Foundry version for `forge fmt`.
 
 Experimental and unaudited.

@@ -49,3 +49,6 @@ jobs:
 
       - name: Transaction gas regression
         run: python3 scripts/benchmark.py --lengths 0 16 95
+
+      - name: Osaka transaction gas regression
+        run: python3 scripts/benchmark.py --hardfork osaka --lengths 0 16 95
