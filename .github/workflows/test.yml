@@ -42,4 +42,10 @@ jobs:
         run: forge test -vv --match-contract Falcon512ZKNOXOptimizedTest --match-test 'test_'
 
       - name: Differential fuzzing
-        run: forge test -vv --match-contract Falcon512ZKNOXOptimizedTest --match-test testFuzz_PreparedDifferentialMutations
+        run: forge test -vv --match-contract Falcon512ZKNOXOptimizedTest --match-test 'testFuzz_' --fuzz-runs 64
+
+      - name: Independent arithmetic and sampling fuzzing
+        run: forge test -vv --match-contract 'PackedArithmeticTest|ShakeSamplingTest' --fuzz-runs 1024
+
+      - name: Transaction gas regression
+        run: python3 scripts/benchmark.py --lengths 0 16 95
