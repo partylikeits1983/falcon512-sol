@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Measure real transaction gas on a fresh, private Anvil instance.
+"""Measure verification of 32-byte Keccak-256 digests on a private Anvil instance.
+
+--lengths selects the source message sizes, before hashing. Falcon always signs
+the 32 raw digest bytes; only those digest bytes are sent to the verifier.
 
 Run `cargo build -p falcon512-oracle && forge build` first. No external RPC,
 wallet, private key, or Python dependency is used. Anvil is stopped on exit.
@@ -83,7 +86,10 @@ def encode_call(selector, message, salt, s2, key):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hardfork", default="shanghai")
-    parser.add_argument("--lengths", type=int, nargs="+", default=[0, 16, 95, 96, 232, 512, 1024])
+    parser.add_argument(
+        "--lengths", type=int, nargs="+", default=[0, 16, 95, 96, 232, 512, 1024],
+        help="source message lengths before Keccak-256 (signed input is always 32 bytes)",
+    )
     args = parser.parse_args()
     assert all(0 <= length <= 4096 for length in args.lengths)
     with socket.socket() as reservation:
@@ -156,20 +162,25 @@ def main():
                 "runtime_bytes": len(bytes.fromhex(rpc("eth_getCode", [verifier, "latest"])[2:])),
             }), flush=True)
             for length in args.lengths:
-                message = bytes.fromhex("00112233445566778899aabbccddeeff") if length == 16 else bytes(
+                source_message = bytes.fromhex("00112233445566778899aabbccddeeff") if length == 16 else bytes(
                     i % 256 for i in range(length)
                 )
+                message = bytes.fromhex(subprocess.check_output(
+                    ["cast", "keccak", "0x" + source_message.hex()], text=True
+                ).strip().removeprefix("0x"))
+                assert len(message) == 32
                 generated = bytes.fromhex(subprocess.check_output([
                     str(ROOT / "target/debug/falcon512-oracle"), "gen", "0x" + word(0x42).hex(),
                     "0x" + word(0x99).hex(), "0x" + message.hex(),
                 ], text=True).strip().removeprefix("0x"))
                 salt, s2, key = prepare(generated[:666], generated[666:])
                 call = encode_call(selector, message, salt, s2, key)
-                receipt = send(call, verifier, gas=1_000_000 if length <= 512 else 5_000_000)
+                receipt = send(call, verifier, gas=1_000_000)
                 intrinsic = 21_000 + sum(4 if byte == 0 else 16 for byte in call)
                 gas_used = int(receipt["gasUsed"], 16)
                 print(json.dumps({
-                    "message_bytes": length, "transaction_gas": gas_used,
+                    "source_message_bytes": length, "signed_message_bytes": len(message),
+                    "transaction_gas": gas_used,
                     "intrinsic_gas": intrinsic, "execution_gas": gas_used - intrinsic,
                 }), flush=True)
         finally:

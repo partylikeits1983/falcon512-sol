@@ -49,21 +49,40 @@ contract Falcon512VerifierTest is Test {
     }
 
     function test_GasPreparedFixedVector() public {
-        bytes memory message = hex"00112233445566778899aabbccddeeff";
+        bytes memory message = abi.encodePacked(keccak256(hex"00112233445566778899aabbccddeeff"));
         (bytes memory signature, bytes memory publicKey) =
             _rustGenerate(bytes32(uint256(0x42)), bytes32(uint256(0x99)), message);
         (, bytes memory salt, uint256[] memory s2, uint256[] memory ntth) = _prepare(signature, publicKey);
         vm.cool(optimized.f1600Helper());
         assertTrue(optimized.verifyPrepared(message, salt, s2, ntth));
-        uint256 used = vm.snapshotGasLastCall("prepared_fixed_vector");
+        uint256 used = vm.snapshotGasLastCall("prepared_keccak256_digest");
         emit log_named_uint("Prepared verification (cold helper)", used);
-        assertLt(used, 645_000, "fixed-vector execution gas regression");
+        assertLt(used, 690_000, "fixed-vector execution gas regression");
         bytes memory callData = abi.encodeCall(optimized.verifyPrepared, (message, salt, s2, ntth));
         uint256 intrinsic = 21_000;
         for (uint256 i; i < callData.length; ++i) {
             intrinsic += callData[i] == 0 ? 4 : 16;
         }
         assertLt(used + intrinsic, 1_000_000, "fixed-vector transaction gas regression");
+    }
+
+    function test_PrehashedMessageBinding() public {
+        bytes memory sourceMessage = new bytes(4096);
+        for (uint256 i; i < sourceMessage.length; ++i) {
+            sourceMessage[i] = bytes1(uint8(i));
+        }
+        bytes memory digest = abi.encodePacked(keccak256(sourceMessage));
+        (bytes memory signature, bytes memory publicKey) =
+            _rustGenerate(bytes32(uint256(0x42)), bytes32(uint256(0x99)), digest);
+        assertTrue(_assertPreparedMatchesRust(signature, publicKey, digest));
+        assertFalse(_assertPreparedMatchesRust(signature, publicKey, sourceMessage), "raw message accepted");
+        assertFalse(
+            _assertPreparedMatchesRust(signature, publicKey, abi.encodePacked(keccak256(digest))),
+            "double-hashed message accepted"
+        );
+        assertFalse(
+            _assertPreparedMatchesRust(signature, publicKey, bytes(vm.toString(digest))), "hex-encoded digest accepted"
+        );
     }
 
     function testFuzz_ValidPrepared(bytes32 seed, uint16 messageLength) public {
@@ -90,6 +109,8 @@ contract Falcon512VerifierTest is Test {
         for (uint256 i; i < message.length; ++i) {
             message[i] = messageSeed[i % 32];
         }
+        // Sign the raw 32-byte digest of the generated source message.
+        message = abi.encodePacked(keccak256(message));
         (bytes memory signature, bytes memory publicKey) = _rustGenerate(keySeed, rngSeed, message);
         assertTrue(_assertPreparedMatchesRust(signature, publicKey, message), "fresh signature rejected");
 

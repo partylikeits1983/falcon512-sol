@@ -1,38 +1,43 @@
 # Falcon512 Solidity Verifier
 
-**695,970 gas per verification transaction** for the fixed valid Falcon512
-signature with a 16-byte message. This includes **642,962 execution gas** plus
-53,008 gas for the transaction base and calldata. Execution gas is **38.7% lower**
-than the original 1,048,550 gas.
+**741,010 gas per verification transaction**, including **687,762 execution gas**
+and 53,248 gas for the transaction base and calldata, for the fixed benchmark.
+**Every benchmark signs and verifies a 32-byte Keccak-256 message digest.**
 
-These figures measure `Falcon512Verifier.verifyPrepared` with a cold SHAKE
-helper. Inputs are prepared offchain; deployment is a separate, one-time cost.
-The measured 512-byte-message transaction also fits below one million gas,
-at **918,273 gas**. Costs for each tested message length are below.
+Hash the original message offchain, sign the 32 raw digest bytes with Falcon512,
+and pass those same digest bytes to `Falcon512Verifier.verifyPrepared`.
+The verifier accepts variable-length `bytes` and performs no implicit Keccak
+prehashing. Longer inputs remain supported by the API.
 
 ## Gas
 
 Actual transactions on a fresh local Anvil instance, Shanghai rules, Solidity
 0.8.36, IR compiler, optimizer runs 1,000,000. Each verification starts with a
-cold helper. Transaction gas includes the 21,000 base and calldata costs:
+cold helper. Input preparation, offchain message hashing, and deployment are
+separate from verification. Transaction gas includes the 21,000 base and calldata.
 
-| Message bytes | Execution gas | Total transaction gas |
-| ---: | ---: | ---: |
-| 0 | 646,121 | 699,157 |
-| 16 (fixed Rust vector) | 642,962 | 695,970 |
-| 95 | 687,230 | 741,862 |
-| 96 | 688,068 | 742,532 |
-| 232 | 772,538 | 829,178 |
-| 512 | 857,477 | 918,273 |
-| 1,024 | 984,282 | 1,053,546 |
+All rows pass **32 signed bytes** to the verifier. Source length describes the
+message *before* Keccak-256; the fixed source is `00112233445566778899aabbccddeeff`.
 
-These are deterministic vectors, not a worst-case bound. SHAKE rejection
-sampling changes the number of permutations, and longer messages need more
-absorption blocks. **The sub-million target is met for the tested
-messages through 512 bytes; it is not a guarantee for every message/signature.**
+| Source message bytes | Signed digest bytes | Execution gas | Total transaction gas |
+| ---: | ---: | ---: | ---: |
+| 0 | 32 | 688,144 | 741,248 |
+| 16 (fixed vector) | 32 | 687,762 | 741,010 |
+| 95 | 32 | 645,680 | 699,192 |
+| 96 | 32 | 687,522 | 740,878 |
+| 232 | 32 | 645,916 | 699,416 |
+| 512 | 32 | 645,400 | 698,420 |
+| 1,024 | 32 | 644,454 | 697,786 |
 
-The 0-, 16-, 95-, and 512-byte cases also produce the same transaction gas under
-Osaka rules, checked in CI with `--hardfork osaka`.
+The measured transactions range from **697,786 to 741,248 gas**, all below one
+million. Digest/signature contents change SHAKE rejection sampling and calldata
+cost; these vectors do not establish a worst-case bound. Original message length
+does not increase the bytes verified when only its digest is passed.
+
+The digests of the 0-, 16-, 95-, and 512-byte sources also produce identical
+transaction gas under Osaka rules, checked in CI with `--hardfork osaka`.
+`--lengths` in `scripts/benchmark.py` selects source lengths before hashing;
+the signed input is always 32 bytes and every transaction has a 1,000,000 gas limit.
 
 Verifier deployment: 4,657,364 gas; runtime: 21,487 bytes; initcode: 21,679 bytes
 before constructor arguments. The separate, reusable SHAKE helper costs
@@ -113,16 +118,17 @@ FALCON_ORACLE=./target/release/falcon512-oracle forge test \
   --match-test testFuzz_GeneratedSignaturesReachVerifier --fuzz-runs 1024
 ```
 
-Each case generates a key and signature from fuzzed seeds, then compares Rust
-and Solidity on the valid signature and altered message, salt, signature
-coefficient, and public-key coefficient. All five variants must prepare
-successfully and reach the Solidity verifier. Messages range from 0 to 1,024
-bytes. CI runs the same gate; Foundry reports a reproducible counterexample
-if either implementation disagrees.
+Each case generates a key and signs the Keccak-256 digest of a source message
+from fuzzed seeds, then compares Rust and Solidity on the valid signature and
+altered digest, salt, signature coefficient, and public-key coefficient. All five variants must prepare
+successfully and reach the Solidity verifier. Source messages range from 0 to
+1,024 bytes; each signed digest is exactly 32 bytes. CI runs the same gate;
+Foundry reports a reproducible counterexample if either implementation disagrees.
 
 ## ABI
 
-The contract verifies prepared inputs:
+The contract verifies prepared inputs. For the benchmarked signing flow,
+`message` is the 32-byte Keccak-256 digest, not its ASCII hex encoding:
 
 ```solidity
 verifyPrepared(bytes message, bytes salt, uint256[] s2, uint256[] ntth) returns (bool)

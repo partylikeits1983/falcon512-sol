@@ -22,17 +22,23 @@ Commit timestamps requested by the repository owner: first two commits use
 
 ## Result
 
-The fixed-vector cold-helper execution cost decreased from 1,048,550 to 642,962
-gas. The actual transaction consumes 695,970 gas. Full message-length and
-deployment measurements are in the README and can be reproduced with
-`python3 scripts/benchmark.py`. The complete table uses Shanghai rules.
-The 0-, 16-, 95-, and 512-byte transactions were also tested with Osaka rules on a
-newer Anvil and have identical gas costs; both forks are covered in CI.
+The current fixed benchmark verifies a 32-byte Keccak-256 digest in 687,762
+execution gas and 741,010 total transaction gas. All current gas measurements
+sign raw digest bytes; source messages are hashed offchain. The verifier retains
+its variable-length `bytes` input and does not apply this prehash itself.
+The README contains the measured digest vectors and deployment costs, reproduced
+with `python3 scripts/benchmark.py`. Shanghai and Osaka agree on the tested cases.
+
+The historical optimization table below used a raw 16-byte message. Its costs
+are not directly comparable with the new digest fixture: the latter requires an
+additional SHAKE sampling block. It remains useful as a record of arithmetic
+and representation changes measured on one unchanged historical vector.
 
 The implementation preserves the prepared-input ABI and arithmetic semantics,
 including its strict norm threshold and reduction of uint16 key residues.
-The helper and its pinned runtime hash are unchanged. No signature coefficients,
-SHAKE permutations, or rejection-sampling checks are omitted for valid inputs.
+The constructor pins the resident helper described below. No signature
+coefficients, SHAKE permutations, or rejection-sampling checks are omitted for
+valid inputs.
 
 ## Four-lane reference bounds
 
@@ -202,7 +208,7 @@ the verifier now costs 4,657,364 gas to deploy, plus the reusable resident
 helper's 4,241,537 gas deployment. Both deployments were exercised on Shanghai
 and Osaka.
 
-## Measured progression
+## Historical progression (raw 16-byte message)
 
 | Kernel | Fixed-vector execution gas |
 | --- | ---: |
@@ -232,17 +238,19 @@ and Osaka.
 - 1,024 valid-signature and 1,024 mutation cases against the Rust oracle, including
   messages through 512 bytes. The Rust crate itself currently has no unit tests;
   its verification function is exercised through Foundry FFI.
-- 1,024 newly generated signatures with messages through 1,024 bytes, each
-  checked alongside four canonically encoded mutations: 5,120 Rust/Solidity
-  acceptance comparisons, with no preparation skips or mismatches.
+- 1,024 newly generated signatures over 32-byte Keccak-256 digests of source
+  messages through 1,024 bytes, each checked alongside four canonical mutations:
+  5,120 Rust/Solidity acceptance comparisons, with no preparation skips or mismatches.
 - Full 512-coefficient hash-to-point comparisons with Python hashlib at message
   lengths 0, 1, 94, 95, 96, 97, 231, 232, 233, and 4,096.
 - Zero, maximal and alternating polynomial coefficients, invalid uint16 lanes,
   malformed lengths, excessive norms, rejection thresholds, sampler completion
   within an unrolled group, and helper return-size/revert failures.
-- Solidity/Rust formatting, build and contract-size checks, a 645,000 execution
-  gas ceiling on the fixed vector, and actual short-message transactions with
-  a 1,000,000 gas limit, including the 512-byte vector (918,273 transaction gas).
+- Solidity/Rust formatting, build and contract-size checks, a 690,000 execution
+  gas ceiling on the fixed digest vector, and actual digest-verification
+  transactions with a 1,000,000 gas limit.
+- A prehash binding test accepts the signed digest and rejects the original
+  4,096-byte source, a double hash, and an ASCII hex digest against Rust.
 
 ## Limits and further work
 
@@ -286,3 +294,9 @@ with fuzzed key/signing seeds and run the prepared-mutation gate documented in
 the README. Each case must reach Solidity for the valid signature and all four
 mutations, and match the Rust verifier. Preparation failures must fail the test
 rather than silently skip a case.
+
+A batched-absorption wrapper also matched 1,024 random absorption states and
+1,024 permutation states, but increased the historical raw 16-byte verification
+cost from 642,962 to 644,609 gas. It was reverted. With benchmarks now signing
+only 32-byte Keccak-256 digests, long-source absorption is offchain and provides
+no onchain optimization opportunity for this signing flow.
