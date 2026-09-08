@@ -57,7 +57,7 @@ contract Falcon512VerifierTest is Test {
         assertTrue(optimized.verifyPrepared(message, salt, s2, ntth));
         uint256 used = vm.snapshotGasLastCall("prepared_fixed_vector");
         emit log_named_uint("Prepared verification (cold helper)", used);
-        assertLt(used, 680_000, "fixed-vector execution gas regression");
+        assertLt(used, 670_000, "fixed-vector execution gas regression");
         bytes memory callData = abi.encodeCall(optimized.verifyPrepared, (message, salt, s2, ntth));
         uint256 intrinsic = 21_000;
         for (uint256 i; i < callData.length; ++i) {

@@ -22,8 +22,8 @@ Commit timestamps requested by the repository owner: first two commits use
 
 ## Result
 
-The fixed-vector cold-helper execution cost decreased from 1,048,550 to 674,203
-gas. The actual transaction consumes 727,211 gas. Full message-length and
+The fixed-vector cold-helper execution cost decreased from 1,048,550 to 662,960
+gas. The actual transaction consumes 715,968 gas. Full message-length and
 deployment measurements are in the README and can be reproduced with
 `python3 scripts/benchmark.py`. The complete table uses Shanghai rules.
 The 0-, 16-, 95-, and 512-byte transactions were also tested with Osaka rules on a
@@ -125,17 +125,36 @@ The Python constant checker exhausts all q scalar centering inputs. Solidity
 fuzz tests compare the full-range packed norm with scalar sums and exercise
 all lanes at both 6144 and 6145, as well as random valid signatures and mutations.
 
+## Direct-state sampling
+
+A 136-byte SHAKE rate block has at most 68 candidates. If the starting count
+is at most 444, even accepting every candidate cannot exceed 512 outputs.
+This path omits per-candidate output bound checks. Later blocks retain each
+check, including completion within a group of four candidates.
+
+The production sampler reads lanes 0 through 16 directly from the helper's
+25-word state. Each lane is a uint64 with little-endian bytes. Swapping the
+bytes within each uint16 yields Falcon's big-endian candidates; no serialized
+rate block is allocated or written. Sampling leaves the state unchanged for
+the next permutation and never consumes the capacity lanes.
+
+Tests compare this path with both byte-buffer samplers and the scalar loop,
+including counts 444/445, completion within a group, all-rejected blocks, and
+nonzero capacity lanes. A further per-iteration completion check increased the
+fixed-vector cost and was not retained.
+
 ## Loop specialization
 
-All word-aligned butterfly bodies and the final normalization are unrolled.
+Word-aligned butterfly bodies are unrolled. Final normalization uses two
+iterations of 16 pairs, freeing space for the sampler specialization.
 The field operations, twiddle ordering, and bounds above remain unchanged.
 `scripts/generate_ntt_loops.py` derives each offset, stage bias, and root index
 from the stage width and checks the checked-in assembly. Regenerate with
 `--write`, then run `forge fmt`; CI checks the generated sections.
 
-The measured runtime is 24,509 bytes, leaving 67 bytes below the deployment
+The measured runtime is 20,647 bytes, leaving 3,929 bytes below the deployment
 limit. This deliberately prioritizes per-verification gas over deployment gas:
-the verifier now costs 5,301,151 gas to deploy, plus the unchanged reusable
+the verifier now costs 4,476,225 gas to deploy, plus the unchanged reusable
 helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 
 ## Measured progression
@@ -153,6 +172,8 @@ helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 | Branchless scalar centering | 703,195 |
 | Packed signature sum of squares | 682,907 |
 | Centering folded into sampler reduction | 674,203 |
+| Full-block bounds specialization and smaller normalization loop | 667,896 |
+| Direct SHAKE-state sampling | 662,960 |
 
 ## Validation
 
@@ -170,9 +191,9 @@ helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 - Zero, maximal and alternating polynomial coefficients, invalid uint16 lanes,
   malformed lengths, excessive norms, rejection thresholds, sampler completion
   within an unrolled group, and helper return-size/revert failures.
-- Solidity/Rust formatting, build and contract-size checks, a 680,000 execution
+- Solidity/Rust formatting, build and contract-size checks, a 670,000 execution
   gas ceiling on the fixed vector, and actual short-message transactions with
-  a 1,000,000 gas limit, including the 512-byte vector (956,903 transaction gas).
+  a 1,000,000 gas limit, including the 512-byte vector (944,173 transaction gas).
 
 ## Limits and further work
 
@@ -196,9 +217,10 @@ been proven; a successful gas regression test cannot establish that claim.
 The helper-backed Keccak-f permutation and sponge integration remain candidates
 for further work. Any replacement must match all state lanes and Python SHAKE
 vectors, respect EIP-170, and win under Osaka transaction accounting. The NTT
-word loops are now fully unrolled. Remaining candidates include sampler
-loop layout and SHAKE state handling; every change must be measured within the
-remaining bytecode allowance.
+word butterfly bodies are unrolled and sampling reads the state directly.
+Remaining candidates include batching the norm when four consecutive candidates
+are accepted, and different Keccak permutation layouts. Bytecode tradeoffs
+should be measured together, including reductions in unrolling when needed.
 
 A packed-column Keccak prototype matched all 25 lanes of the existing helper
 on 64 random states, but was slower. The existing permutation costs 41,373 gas;

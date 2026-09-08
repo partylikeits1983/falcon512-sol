@@ -361,46 +361,201 @@ function _sampleShakeBlockNormPacked8(uint256[] memory product, uint256 count, u
         // Coefficients are little-endian 32-bit lanes in big-endian words.
         // XOR maps sequential coefficient offsets to their memory positions.
         let offset := shl(2, count)
-        // Four candidates per iteration; every acceptance checks the output
-        // bound, including completion in the middle of this unrolled group.
+        // A rate block has at most 68 candidates. Counts <=444 therefore
+        // need no per-candidate output bound; later blocks check every one.
+        // Four candidates are processed per iteration.
         // 30722 = 2q + floor(q/2). Product lanes are <2q, so subtraction
         // stays nonnegative. MOD then subtracting floor(q/2) directly gives
         // the centered difference in [-6144,6144].
-        for { let j := 0 } lt(j, _RATE_FAST) { j := add(j, 8) } {
-            {
-                let t := shr(240, mload(add(outPtr, j)))
-                if and(lt(t, kq), lt(offset, 2048)) {
-                    let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                    let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                    norm := add(norm, mul(s1i, s1i))
-                    offset := add(offset, 4)
+        switch gt(count, 444)
+        case 0 {
+            for { let j := 0 } lt(j, _RATE_FAST) { j := add(j, 8) } {
+                {
+                    let t := shr(240, mload(add(outPtr, j)))
+                    if lt(t, kq) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := shr(240, mload(add(outPtr, add(j, 2))))
+                    if lt(t, kq) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := shr(240, mload(add(outPtr, add(j, 4))))
+                    if lt(t, kq) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := shr(240, mload(add(outPtr, add(j, 6))))
+                    if lt(t, kq) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
                 }
             }
-            {
-                let t := shr(240, mload(add(outPtr, add(j, 2))))
-                if and(lt(t, kq), lt(offset, 2048)) {
-                    let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                    let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                    norm := add(norm, mul(s1i, s1i))
-                    offset := add(offset, 4)
+        }
+        default {
+            for { let j := 0 } lt(j, _RATE_FAST) { j := add(j, 8) } {
+                {
+                    let t := shr(240, mload(add(outPtr, j)))
+                    if and(lt(t, kq), lt(offset, 2048)) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := shr(240, mload(add(outPtr, add(j, 2))))
+                    if and(lt(t, kq), lt(offset, 2048)) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := shr(240, mload(add(outPtr, add(j, 4))))
+                    if and(lt(t, kq), lt(offset, 2048)) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := shr(240, mload(add(outPtr, add(j, 6))))
+                    if and(lt(t, kq), lt(offset, 2048)) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
                 }
             }
-            {
-                let t := shr(240, mload(add(outPtr, add(j, 4))))
-                if and(lt(t, kq), lt(offset, 2048)) {
-                    let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                    let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                    norm := add(norm, mul(s1i, s1i))
-                    offset := add(offset, 4)
+        }
+        nextCount := shr(2, offset)
+        nextNorm := norm
+    }
+}
+
+/// @dev Read the 17 rate lanes directly; each state word must fit uint64.
+/// The 25-word helper state uses lane i=x+5*y and little-endian lane bytes.
+function _sampleShakeStateNormPacked8(uint256[] memory product, uint256 count, uint256[25] memory st, uint256 norm)
+    pure
+    returns (uint256 nextCount, uint256 nextNorm)
+{
+    assembly ("memory-safe") {
+        // Centering may represent a negative integer modulo 2^256. MUL
+        // returns its exact nonnegative square because |s1| <= 6144.
+        let productBase := add(product, 32)
+        // Coefficients are little-endian 32-bit lanes in big-endian words.
+        // XOR maps sequential coefficient offsets to their memory positions.
+        let offset := shl(2, count)
+        // A rate block has at most 68 candidates. Counts <=444 therefore
+        // need no per-candidate output bound; later blocks check every one.
+        // Four candidates are processed per iteration.
+        // 30722 = 2q + floor(q/2). Product lanes are <2q, so subtraction
+        // stays nonnegative. MOD then subtracting floor(q/2) directly gives
+        // the centered difference in [-6144,6144].
+        switch gt(count, 444)
+        case 0 {
+            for { let j := 0 } lt(j, 544) { j := add(j, 32) } {
+                let lane := mload(add(st, j))
+                let low := and(lane, 0x00ff00ff00ff00ff)
+                lane := or(shl(8, low), shr(8, xor(lane, low)))
+                {
+                    let t := and(lane, 0xffff)
+                    if lt(t, kq) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := and(shr(16, lane), 0xffff)
+                    if lt(t, kq) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := and(shr(32, lane), 0xffff)
+                    if lt(t, kq) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := shr(48, lane)
+                    if lt(t, kq) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
                 }
             }
-            {
-                let t := shr(240, mload(add(outPtr, add(j, 6))))
-                if and(lt(t, kq), lt(offset, 2048)) {
-                    let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                    let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                    norm := add(norm, mul(s1i, s1i))
-                    offset := add(offset, 4)
+        }
+        default {
+            for { let j := 0 } lt(j, 544) { j := add(j, 32) } {
+                let lane := mload(add(st, j))
+                let low := and(lane, 0x00ff00ff00ff00ff)
+                lane := or(shl(8, low), shr(8, xor(lane, low)))
+                {
+                    let t := and(lane, 0xffff)
+                    if and(lt(t, kq), lt(offset, 2048)) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := and(shr(16, lane), 0xffff)
+                    if and(lt(t, kq), lt(offset, 2048)) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := and(shr(32, lane), 0xffff)
+                    if and(lt(t, kq), lt(offset, 2048)) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
+                }
+                {
+                    let t := shr(48, lane)
+                    if and(lt(t, kq), lt(offset, 2048)) {
+                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                        norm := add(norm, mul(s1i, s1i))
+                        offset := add(offset, 4)
+                    }
                 }
             }
         }
@@ -537,12 +692,9 @@ function verifyWithHashToPointNISTFastCalldataPackedProduct(
     uint256[25] memory st;
     _absorbSaltMessageCalldataFast170(st, salt, msgHash, helper);
 
-    uint256 outPtr = _allocRateBlock();
-
     unchecked {
         while (count < n) {
-            _squeezeBlockFast170(st, outPtr);
-            (count, norm) = _sampleShakeBlockNormPacked8(product, count, outPtr, norm);
+            (count, norm) = _sampleShakeStateNormPacked8(product, count, st, norm);
             if (norm >= sigBound) return false;
             if (count == n) break;
             f1600Fast170(st, helper);

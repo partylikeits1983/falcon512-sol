@@ -121,7 +121,6 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
         let table := add(twiddles, 32)
         // BEGIN GENERATED FORWARD
         {
-            // Forward t=256: all 32 packed butterflies share root[1].
             {
                 let p := base
                 let s := shr(240, mload(add(table, 2)))
@@ -129,6 +128,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -137,6 +137,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 32)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -145,6 +146,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 64)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -153,6 +155,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 96)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -161,6 +164,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 128)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -169,6 +173,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 160)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -177,6 +182,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 192)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -185,6 +191,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 224)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -193,6 +200,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 256)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -201,6 +209,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 288)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -209,6 +218,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 320)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -217,6 +227,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 352)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -225,6 +236,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 384)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -233,6 +245,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 416)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -241,6 +254,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 448)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -249,6 +263,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 480)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -257,6 +272,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 512)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -265,6 +281,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 544)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -273,6 +290,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 576)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -281,6 +299,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 608)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -289,6 +308,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 640)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -297,6 +317,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 672)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -305,6 +326,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 704)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -313,6 +335,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 736)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -321,6 +344,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 768)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -329,6 +353,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 800)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -337,6 +362,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 832)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -345,6 +371,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 864)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -353,6 +380,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 896)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -361,6 +389,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 928)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -369,6 +398,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 960)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -377,11 +407,13 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 992)
                     let pt := add(pa, 1024)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
                 }
             }
+
             for { let w := 0 } lt(w, 2) { w := add(w, 1) } {
                 let p := add(base, mul(1024, w))
                 let s := shr(240, mload(add(add(table, 4), shl(1, w))))
@@ -389,6 +421,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -397,6 +430,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 32)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -405,6 +439,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 64)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -413,6 +448,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 96)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -421,6 +457,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 128)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -429,6 +466,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 160)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -437,6 +475,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 192)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -445,6 +484,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 224)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -453,6 +493,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 256)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -461,6 +502,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 288)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -469,6 +511,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 320)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -477,6 +520,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 352)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -485,6 +529,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 384)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -493,6 +538,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 416)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -501,6 +547,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 448)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -509,11 +556,13 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 480)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
                 }
             }
+
             for { let w := 0 } lt(w, 4) { w := add(w, 1) } {
                 let p := add(base, mul(512, w))
                 let s := shr(240, mload(add(add(table, 8), shl(1, w))))
@@ -521,6 +570,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -529,6 +579,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 32)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -537,6 +588,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 64)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -545,6 +597,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 96)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -553,6 +606,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 128)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -561,6 +615,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 160)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -569,6 +624,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 192)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
@@ -577,11 +633,13 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 224)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q2L32), v))
                 }
             }
+
             for { let w := 0 } lt(w, 8) { w := add(w, 1) } {
                 let p := add(base, mul(256, w))
                 let s := shr(240, mload(add(add(table, 16), shl(1, w))))
@@ -589,6 +647,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 128)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q3L32), v))
@@ -597,6 +656,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 32)
                     let pt := add(pa, 128)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q3L32), v))
@@ -605,6 +665,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 64)
                     let pt := add(pa, 128)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q3L32), v))
@@ -613,11 +674,13 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 96)
                     let pt := add(pa, 128)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q3L32), v))
                 }
             }
+
             for { let w := 0 } lt(w, 16) { w := add(w, 1) } {
                 let p := add(base, mul(128, w))
                 let s := shr(240, mload(add(add(table, 32), shl(1, w))))
@@ -625,6 +688,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 64)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q3L32), v))
@@ -633,11 +697,13 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 32)
                     let pt := add(pa, 64)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q3L32), v))
                 }
             }
+
             for { let w := 0 } lt(w, 32) { w := add(w, 1) } {
                 let p := add(base, mul(64, w))
                 let s := shr(240, mload(add(add(table, 64), shl(1, w))))
@@ -645,6 +711,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 32)
                     let u := mload(pa)
+
                     let v := mont(mul(mload(pt), s))
                     mstore(pa, add(u, v))
                     mstore(pt, sub(add(u, _Q4L32), v))
@@ -674,6 +741,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
         // BEGIN GENERATED INVERSE
         {
             let inverse := add(table, 128)
+
             for { let w := 0 } lt(w, 32) { w := add(w, 1) } {
                 let p := add(base, mul(64, w))
                 let s := shr(240, mload(add(add(inverse, 64), shl(1, w))))
@@ -681,12 +749,14 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 32)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
                     mstore(pt, d)
                 }
             }
+
             for { let w := 0 } lt(w, 16) { w := add(w, 1) } {
                 let p := add(base, mul(128, w))
                 let s := shr(240, mload(add(add(inverse, 32), shl(1, w))))
@@ -694,6 +764,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 64)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -703,12 +774,14 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 32)
                     let pt := add(pa, 64)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
                     mstore(pt, d)
                 }
             }
+
             for { let w := 0 } lt(w, 8) { w := add(w, 1) } {
                 let p := add(base, mul(256, w))
                 let s := shr(240, mload(add(add(inverse, 16), shl(1, w))))
@@ -716,6 +789,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 128)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -725,6 +799,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 32)
                     let pt := add(pa, 128)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -734,6 +809,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 64)
                     let pt := add(pa, 128)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -743,12 +819,14 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 96)
                     let pt := add(pa, 128)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
                     mstore(pt, d)
                 }
             }
+
             for { let w := 0 } lt(w, 4) { w := add(w, 1) } {
                 let p := add(base, mul(512, w))
                 let s := shr(240, mload(add(add(inverse, 8), shl(1, w))))
@@ -756,6 +834,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -765,6 +844,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 32)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -774,6 +854,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 64)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -783,6 +864,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 96)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -792,6 +874,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 128)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -801,6 +884,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 160)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -810,6 +894,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 192)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -819,12 +904,14 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 224)
                     let pt := add(pa, 256)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
                     mstore(pt, d)
                 }
             }
+
             for { let w := 0 } lt(w, 2) { w := add(w, 1) } {
                 let p := add(base, mul(1024, w))
                 let s := shr(240, mload(add(add(inverse, 4), shl(1, w))))
@@ -832,6 +919,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 0)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -841,6 +929,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 32)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -850,6 +939,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 64)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -859,6 +949,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 96)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -868,6 +959,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 128)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -877,6 +969,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 160)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -886,6 +979,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 192)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -895,6 +989,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 224)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -904,6 +999,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 256)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -913,6 +1009,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 288)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -922,6 +1019,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 320)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -931,6 +1029,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 352)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -940,6 +1039,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 384)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -949,6 +1049,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 416)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -958,6 +1059,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 448)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -967,6 +1069,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
                     let pa := add(p, 480)
                     let pt := add(pa, 512)
                     let u := mload(pa)
+
                     let v := mload(pt)
                     let d := mont(mul(sub(add(u, _Q4L32), v), s))
                     mstore(pa, bound4q(add(u, v)))
@@ -978,8 +1081,7 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
         // 128 = R/512; 4977 = inverseRoot[1]*R/512 mod q. Both scaled
         // products are <q*R for inputs <8q, giving final residues below 2q.
         // BEGIN GENERATED NORMALIZE
-        {
-            let p := base
+        for { let p := base } lt(p, add(base, 1024)) { p := add(p, 512) } {
             {
                 let pa := add(p, 0)
                 let pt := add(pa, 1024)
@@ -1102,134 +1204,6 @@ function falconProductMontgomery8Native(uint256[] memory A, uint256[] calldata k
             }
             {
                 let pa := add(p, 480)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 512)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 544)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 576)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 608)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 640)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 672)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 704)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 736)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 768)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 800)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 832)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 864)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 896)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 928)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 960)
-                let pt := add(pa, 1024)
-                let u := mload(pa)
-                let v := mload(pt)
-                mstore(pa, mont(shl(7, add(u, v))))
-                mstore(pt, mont(mul(sub(add(u, _Q4L32), v), 4977)))
-            }
-            {
-                let pa := add(p, 992)
                 let pt := add(pa, 1024)
                 let u := mload(pa)
                 let v := mload(pt)

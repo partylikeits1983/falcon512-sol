@@ -60,8 +60,8 @@ def stages(inverse=False):
 
 
 def normalization():
-    output = "{ let p := base\n"
-    for j in range(32):
+    output = "for { let p := base } lt(p, add(base, 1024)) { p := add(p, 512) } {\n"
+    for j in range(16):
         output += f"""{{
             let pa := add(p, {32 * j})
             let pt := add(pa, 1024)
