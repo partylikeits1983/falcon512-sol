@@ -22,8 +22,8 @@ Commit timestamps requested by the repository owner: first two commits use
 
 ## Result
 
-The fixed-vector cold-helper execution cost decreased from 1,048,550 to 662,960
-gas. The actual transaction consumes 715,968 gas. Full message-length and
+The fixed-vector cold-helper execution cost decreased from 1,048,550 to 649,308
+gas. The actual transaction consumes 702,316 gas. Full message-length and
 deployment measurements are in the README and can be reproduced with
 `python3 scripts/benchmark.py`. The complete table uses Shanghai rules.
 The 0-, 16-, 95-, and 512-byte transactions were also tested with Osaka rules on a
@@ -141,7 +141,27 @@ the next permutation and never consumes the capacity lanes.
 Tests compare this path with both byte-buffer samplers and the scalar loop,
 including counts 444/445, completion within a group, all-rejected blocks, and
 nonzero capacity lanes. A further per-iteration completion check increased the
-fixed-vector cost and was not retained.
+fixed-vector cost for this initial direct-state sampler.
+
+## Four-candidate acceptance batches
+
+The sampler tests all four candidates in a state lane together. For a uint16
+candidate `t`, `((t & 0x7fff) + 0x0ffb) & t & 0x8000` is nonzero exactly when
+`t >= 5q = 61445`. Adding 4091 to the low 15 bits never reaches 65536, so the
+same mask works independently across all four adjacent lanes. The Python
+checker exhausts all 65,536 candidate values.
+
+When every candidate passes, four scalar centered squares are accumulated
+together, with one output-offset update and no individual acceptance branches.
+Mixed groups retain the scalar fallback. The partial-block path also requires
+four remaining output slots before batching; its fallback checks each slot.
+Tests exercise all 16 acceptance patterns, every packed-word alignment, and
+counts 507 through 511, in addition to random sampling and fresh signatures.
+
+The combined path makes stopping the final loop as soon as 512 outputs are
+consumed profitable: it now skips both the batch threshold and fallback work.
+This was measured again with the new body, rather than assuming the earlier
+completion-check result still applied.
 
 ## Loop specialization
 
@@ -152,9 +172,9 @@ The field operations, twiddle ordering, and bounds above remain unchanged.
 from the stage width and checks the checked-in assembly. Regenerate with
 `--write`, then run `forge fmt`; CI checks the generated sections.
 
-The measured runtime is 20,647 bytes, leaving 3,929 bytes below the deployment
+The measured runtime is 21,371 bytes, leaving 3,205 bytes below the deployment
 limit. This deliberately prioritizes per-verification gas over deployment gas:
-the verifier now costs 4,476,225 gas to deploy, plus the unchanged reusable
+the verifier now costs 4,632,518 gas to deploy, plus the unchanged reusable
 helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 
 ## Measured progression
@@ -174,6 +194,9 @@ helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 | Centering folded into sampler reduction | 674,203 |
 | Full-block bounds specialization and smaller normalization loop | 667,896 |
 | Direct SHAKE-state sampling | 662,960 |
+| Four-candidate batches in full blocks | 651,624 |
+| Batches in partial blocks with four remaining slots | 650,364 |
+| Stop the final batch loop at completion | 649,308 |
 
 ## Validation
 
@@ -191,9 +214,9 @@ helper's deployment. Both deployments were exercised on Shanghai and Osaka.
 - Zero, maximal and alternating polynomial coefficients, invalid uint16 lanes,
   malformed lengths, excessive norms, rejection thresholds, sampler completion
   within an unrolled group, and helper return-size/revert failures.
-- Solidity/Rust formatting, build and contract-size checks, a 670,000 execution
+- Solidity/Rust formatting, build and contract-size checks, a 650,000 execution
   gas ceiling on the fixed vector, and actual short-message transactions with
-  a 1,000,000 gas limit, including the 512-byte vector (944,173 transaction gas).
+  a 1,000,000 gas limit, including the 512-byte vector (928,601 transaction gas).
 
 ## Limits and further work
 
@@ -218,9 +241,10 @@ The helper-backed Keccak-f permutation and sponge integration remain candidates
 for further work. Any replacement must match all state lanes and Python SHAKE
 vectors, respect EIP-170, and win under Osaka transaction accounting. The NTT
 word butterfly bodies are unrolled and sampling reads the state directly.
-Remaining candidates include batching the norm when four consecutive candidates
-are accepted, and different Keccak permutation layouts. Bytecode tradeoffs
-should be measured together, including reductions in unrolling when needed.
+Four accepted candidates now share one branch and offset update. Remaining
+candidates include packed arithmetic for their norms and different Keccak
+permutation layouts. Bytecode tradeoffs should be measured together, including
+reductions in unrolling when needed.
 
 A packed-column Keccak prototype matched all 25 lanes of the existing helper
 on 64 random states, but was slower. The existing permutation costs 41,373 gas;

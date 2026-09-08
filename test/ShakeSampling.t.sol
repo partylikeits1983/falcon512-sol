@@ -46,6 +46,27 @@ contract ShakeSamplingTest is Test {
         }
     }
 
+    function test_SamplingMixedAcceptance() public pure {
+        uint256[] memory product = new uint256[](128);
+        for (uint256 i; i < 512; ++i) {
+            product[i / 4] |= ((i * 997) % (2 * Q)) << (64 * (i % 4));
+        }
+        // Every acceptance mask, every packed-word alignment, and both
+        // sides of the full-block bound must match independent sampling.
+        uint256[15] memory counts = [uint256(0), 1, 2, 3, 4, 5, 6, 7, 444, 445, 507, 508, 509, 510, 511];
+        for (uint256 mask; mask < 16; ++mask) {
+            bytes memory blockData = new bytes(160);
+            for (uint256 j; j < 68; ++j) {
+                uint256 t = mask & (1 << (j % 4)) == 0 ? 5 * Q - 1 : 5 * Q;
+                blockData[2 * j] = bytes1(uint8(t >> 8));
+                blockData[2 * j + 1] = bytes1(uint8(t));
+            }
+            for (uint256 c; c < counts.length; ++c) {
+                _check(product, blockData, counts[c], 34034725);
+            }
+        }
+    }
+
     function _check(uint256[] memory product, bytes memory blockData, uint256 count, uint256 norm) internal pure {
         uint256 ptr;
         assembly ("memory-safe") {

@@ -69,4 +69,9 @@ for coefficient in range(Q):
 assert 30722 == 2 * Q + Q // 2
 assert 8 * (Q // 2) ** 2 < 1 << 32
 assert 512 * (Q // 2) ** 2 < 1 << 256
+# Four-candidate rejection mask: low-15-bit addition stays within uint16.
+assert 0x7FFF + 0x0FFB < 1 << 16
+for candidate in range(1 << 16):
+    rejected = ((candidate & 0x7FFF) + 0x0FFB) & candidate & 0x8000
+    assert bool(rejected) == (candidate >= 5 * Q)
 print("NTT tables, field constants, and packed-lane bounds verified")

@@ -478,83 +478,187 @@ function _sampleShakeStateNormPacked8(uint256[] memory product, uint256 count, u
                 let lane := mload(add(st, j))
                 let low := and(lane, 0x00ff00ff00ff00ff)
                 lane := or(shl(8, low), shr(8, xor(lane, low)))
-                {
-                    let t := and(lane, 0xffff)
-                    if lt(t, kq) {
-                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                        norm := add(norm, mul(s1i, s1i))
-                        offset := add(offset, 4)
-                    }
+                // Adding 4091 to the low 15 bits cannot carry into another lane.
+                // A candidate is >=61445 exactly when both high bits are set.
+                switch and(and(add(and(lane, 0x7fff7fff7fff7fff), 0x0ffb0ffb0ffb0ffb), lane), 0x8000800080008000)
+                case 0 {
+                    let s0 :=
+                        sub(
+                            mod(
+                                sub(add(and(lane, 0xffff), 30722), shr(224, mload(add(productBase, xor(offset, 28))))),
+                                q
+                            ),
+                            qs1
+                        )
+                    let s1 :=
+                        sub(
+                            mod(
+                                sub(
+                                    add(and(shr(16, lane), 0xffff), 30722),
+                                    shr(224, mload(add(productBase, xor(add(offset, 4), 28))))
+                                ),
+                                q
+                            ),
+                            qs1
+                        )
+                    let s2 :=
+                        sub(
+                            mod(
+                                sub(
+                                    add(and(shr(32, lane), 0xffff), 30722),
+                                    shr(224, mload(add(productBase, xor(add(offset, 8), 28))))
+                                ),
+                                q
+                            ),
+                            qs1
+                        )
+                    let s3 :=
+                        sub(
+                            mod(
+                                sub(
+                                    add(shr(48, lane), 30722),
+                                    shr(224, mload(add(productBase, xor(add(offset, 12), 28))))
+                                ),
+                                q
+                            ),
+                            qs1
+                        )
+                    norm := add(norm, add(add(mul(s0, s0), mul(s1, s1)), add(mul(s2, s2), mul(s3, s3))))
+                    offset := add(offset, 16)
                 }
-                {
-                    let t := and(shr(16, lane), 0xffff)
-                    if lt(t, kq) {
-                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                        norm := add(norm, mul(s1i, s1i))
-                        offset := add(offset, 4)
+                default {
+                    {
+                        let t := and(lane, 0xffff)
+                        if lt(t, kq) {
+                            let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                            let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                            norm := add(norm, mul(s1i, s1i))
+                            offset := add(offset, 4)
+                        }
                     }
-                }
-                {
-                    let t := and(shr(32, lane), 0xffff)
-                    if lt(t, kq) {
-                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                        norm := add(norm, mul(s1i, s1i))
-                        offset := add(offset, 4)
+                    {
+                        let t := and(shr(16, lane), 0xffff)
+                        if lt(t, kq) {
+                            let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                            let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                            norm := add(norm, mul(s1i, s1i))
+                            offset := add(offset, 4)
+                        }
                     }
-                }
-                {
-                    let t := shr(48, lane)
-                    if lt(t, kq) {
-                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                        norm := add(norm, mul(s1i, s1i))
-                        offset := add(offset, 4)
+                    {
+                        let t := and(shr(32, lane), 0xffff)
+                        if lt(t, kq) {
+                            let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                            let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                            norm := add(norm, mul(s1i, s1i))
+                            offset := add(offset, 4)
+                        }
+                    }
+                    {
+                        let t := shr(48, lane)
+                        if lt(t, kq) {
+                            let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                            let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                            norm := add(norm, mul(s1i, s1i))
+                            offset := add(offset, 4)
+                        }
                     }
                 }
             }
         }
         default {
-            for { let j := 0 } lt(j, 544) { j := add(j, 32) } {
+            for { let j := 0 } and(lt(j, 544), lt(offset, 2048)) { j := add(j, 32) } {
                 let lane := mload(add(st, j))
                 let low := and(lane, 0x00ff00ff00ff00ff)
                 lane := or(shl(8, low), shr(8, xor(lane, low)))
-                {
-                    let t := and(lane, 0xffff)
-                    if and(lt(t, kq), lt(offset, 2048)) {
-                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                        norm := add(norm, mul(s1i, s1i))
-                        offset := add(offset, 4)
-                    }
+                // Adding 4091 to the low 15 bits cannot carry into another lane.
+                // A candidate is >=61445 exactly when both high bits are set.
+                // Batch only if four output slots remain; otherwise check each candidate.
+                switch or(
+                    gt(offset, 2032),
+                    and(and(add(and(lane, 0x7fff7fff7fff7fff), 0x0ffb0ffb0ffb0ffb), lane), 0x8000800080008000)
+                )
+                case 0 {
+                    let s0 :=
+                        sub(
+                            mod(
+                                sub(add(and(lane, 0xffff), 30722), shr(224, mload(add(productBase, xor(offset, 28))))),
+                                q
+                            ),
+                            qs1
+                        )
+                    let s1 :=
+                        sub(
+                            mod(
+                                sub(
+                                    add(and(shr(16, lane), 0xffff), 30722),
+                                    shr(224, mload(add(productBase, xor(add(offset, 4), 28))))
+                                ),
+                                q
+                            ),
+                            qs1
+                        )
+                    let s2 :=
+                        sub(
+                            mod(
+                                sub(
+                                    add(and(shr(32, lane), 0xffff), 30722),
+                                    shr(224, mload(add(productBase, xor(add(offset, 8), 28))))
+                                ),
+                                q
+                            ),
+                            qs1
+                        )
+                    let s3 :=
+                        sub(
+                            mod(
+                                sub(
+                                    add(shr(48, lane), 30722),
+                                    shr(224, mload(add(productBase, xor(add(offset, 12), 28))))
+                                ),
+                                q
+                            ),
+                            qs1
+                        )
+                    norm := add(norm, add(add(mul(s0, s0), mul(s1, s1)), add(mul(s2, s2), mul(s3, s3))))
+                    offset := add(offset, 16)
                 }
-                {
-                    let t := and(shr(16, lane), 0xffff)
-                    if and(lt(t, kq), lt(offset, 2048)) {
-                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                        norm := add(norm, mul(s1i, s1i))
-                        offset := add(offset, 4)
+                default {
+                    {
+                        let t := and(lane, 0xffff)
+                        if and(lt(t, kq), lt(offset, 2048)) {
+                            let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                            let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                            norm := add(norm, mul(s1i, s1i))
+                            offset := add(offset, 4)
+                        }
                     }
-                }
-                {
-                    let t := and(shr(32, lane), 0xffff)
-                    if and(lt(t, kq), lt(offset, 2048)) {
-                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                        norm := add(norm, mul(s1i, s1i))
-                        offset := add(offset, 4)
+                    {
+                        let t := and(shr(16, lane), 0xffff)
+                        if and(lt(t, kq), lt(offset, 2048)) {
+                            let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                            let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                            norm := add(norm, mul(s1i, s1i))
+                            offset := add(offset, 4)
+                        }
                     }
-                }
-                {
-                    let t := shr(48, lane)
-                    if and(lt(t, kq), lt(offset, 2048)) {
-                        let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
-                        let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
-                        norm := add(norm, mul(s1i, s1i))
-                        offset := add(offset, 4)
+                    {
+                        let t := and(shr(32, lane), 0xffff)
+                        if and(lt(t, kq), lt(offset, 2048)) {
+                            let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                            let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                            norm := add(norm, mul(s1i, s1i))
+                            offset := add(offset, 4)
+                        }
+                    }
+                    {
+                        let t := shr(48, lane)
+                        if and(lt(t, kq), lt(offset, 2048)) {
+                            let coefficient := shr(224, mload(add(productBase, xor(offset, 28))))
+                            let s1i := sub(mod(sub(add(t, 30722), coefficient), q), qs1)
+                            norm := add(norm, mul(s1i, s1i))
+                            offset := add(offset, 4)
+                        }
                     }
                 }
             }
